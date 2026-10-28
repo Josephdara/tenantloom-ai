@@ -1,0 +1,157 @@
+# ADR-004: Cloud Deploy, platform-owned mandatory gates, and approved staged rollout
+
+| Field | Value |
+|---|---|
+| Status | Accepted |
+| Implementation | Planned |
+| Deciders | Platform team (`ai-platform-admins`), approved by `ai-governance` |
+| Related | [ADR-002](ADR-002-layered-provisioning-and-state.md), [ADR-006](ADR-006-shared-prod-perimeter.md), [ADR-007](ADR-007-model-armor-floor-settings.md), [ADR-010](ADR-010-api-invocation-boundaries.md), [ADR-011](ADR-011-tenant-local-evaluation.md) |
+
+## Context
+
+Every tenant needs the same path from a pull request to prod: build-time checks, promotion through dev and test, evaluation and security gates, release approval, progressive rollout, and recovery. Prod must run exactly the combination of image, model configuration, and thresholds that passed test.
+
+Tenants own their workloads and quality thresholds, but the platform must guarantee that required checks run and that minimum thresholds hold across every tenant. Tenant test code runs inside builds, so build identities and build definitions are part of the tenant boundary. Changes to shared modules, templates, policies, and gates affect every tenant and need their own controlled rollout.
+
+Two platform behaviors shape the design. A Cloud Deploy canary phase shifts traffic before its verification runs, and no documentation says a failed or cancelled rollout restores traffic. A Cloud Deploy release snapshots its pipeline and targets when it is created.
+
+## Decision drivers
+
+1. One consistent promotion path for every tenant.
+2. Prod runs only a release that passed test, under a recorded gate version.
+3. Approval before prod, progressive rollout, and recovery that does not depend on undocumented behavior.
+4. Tenants may tighten but not weaken or remove mandatory checks.
+5. One tenant's build cannot publish or release for another tenant.
+6. Shared changes reach a pilot before everyone else.
+
+## Options considered
+
+### Delivery service
+
+| Option | Assessment |
+|---|---|
+| A. Cloud Build only, with scripted deployments | Full control, but promotion, approval, canary, and rollback must be built and maintained |
+| B. Cloud Build for build-time checks and Cloud Deploy for promotion | Native promotion, approvals, canary for Cloud Run, verification tasks, automation, and rollback |
+| C. An external CD system | Mature tooling, but adds external identity federation and a system outside the Google Cloud native scope |
+
+### Gate protection
+
+| Option | Assessment |
+|---|---|
+| A. Tenant build configuration checked by CI | The configuration comes from the commit being built, so checks are bypassable |
+| B. Platform trigger configuration sourced from a platform repository | Cross-repository configuration for push triggers is not documented, and workload CI would need platform repository access |
+| C. Platform-generated inline trigger configuration, mandatory gates as Cloud Deploy tasks in the platform-managed pipeline, tenant thresholds in a schema-validated file | Tenants cannot edit gates, and each release snapshot fixes its gate version |
+
+### Build identities
+
+| Option | Assessment |
+|---|---|
+| A. One shared build identity | One tenant's build could push to another tenant's repository or create releases in its pipeline |
+| B. Per-tenant build, release, pull request, and promotion identities | Each build can publish only for its own tenant, and tenant code never runs with release authority |
+
+### Release creation
+
+| Option | Assessment |
+|---|---|
+| A. Create the release in a step of the build that publishes the image | Cloud Build publishes images listed in `images` only after every build step finishes, so the release step would run before the image exists, and tenant code would run with release authority |
+| B. A separate release build, triggered by the successful completion of the publishing build, that uses the published digest | The release always references a published, attested image; adds a trigger and an identity per tenant |
+
+### Canary failure recovery
+
+| Option | Assessment |
+|---|---|
+| A. Rely on a failed or cancelled rollout to restore traffic | Not documented, and traffic has already shifted when a phase is verified |
+| B. Automatic rollback rollout on any failed prod job, manual rollback after full rollout | Uses documented automation; traffic restoration verified by drill |
+
+### Rollout of shared changes
+
+| Option | Assessment |
+|---|---|
+| A. A merge deploys to every tenant | Fast, but a defect reaches everyone at once |
+| B. Approved staged rollout with verification at each boundary | Slower, but a defect stops at the pilot |
+
+## Decision
+
+Use option B for delivery service, build identities, release creation, canary recovery, and shared-change rollout, and option C for gate protection.
+
+### Build and release
+
+- Each tenant workload lives in its own repository created from the starter template. The platform per-tenant layer creates Cloud Build triggers with an inline build configuration generated by the pipeline module; a build configuration file in the tenant repository is not used. The build runs the tenant's test entry point, then threshold validation, image build, and vulnerability scan, and publishes the image through the build's `images` field. It does not create a release.
+- Cloud Build publishes `images` only after every step finishes, so release creation is a separate build. A release trigger subscribed to Cloud Build status notifications starts only when the tenant's main build finishes successfully. It runs a platform-generated inline configuration that reads the published digest from the source build's results, confirms the image exists by that digest in the tenant's repository and carries the `built-by-cloud-build` attestation and build provenance, and then creates the Cloud Deploy release. The release name is derived from the source build ID, so a duplicate notification fails on the existing name and never creates a second release. A build whose publication fails never succeeds, so it never produces a release.
+- Main-branch triggers run as `sa-<tenant>-build`, which can write only the tenant's repository and holds no Cloud Deploy permission. Release triggers run as `sa-<tenant>-release`, which can release only through the tenant's pipeline and act only as itself, for rendering, and the dev deploy account; no tenant code runs as it. Pull request triggers run as `sa-<tenant>-ci`, which cannot publish images or create releases. Cloud Deploy automation runs as `sa-<tenant>-promote`. Each tenant has its own Cloud Deploy artifact bucket and build log bucket.
+- Each release bundles the image digest, the pinned model configuration, and the tenant thresholds as deploy parameters. The release's pipeline snapshot fixes the gate bundle version for each stage.
+
+### Gates
+
+- Mandatory check definitions, minimum thresholds, the threshold schema, the gate runner, the harness version, and the minimum supported starter template version are released together as a versioned gate bundle in a platform-only repository in `jd-aip-ops`. Tenant pipelines pin one bundle version per stage through Terraform variables.
+- Mandatory gates run as Cloud Deploy verify and predeploy tasks in the platform-managed pipeline, using gate bundle images by digest. A predeploy check at the start of each stage refuses promotion when the release's gate version differs from the stage's current version. Rollback rollouts are exempt.
+- Tenant thresholds are validated against platform minimums in CI and again by the gate runner; a weaker value fails the gate. A missing value takes the platform minimum. Required checks come only from the gate bundle.
+- When no prod release exists, the eval gate applies absolute thresholds only and records that no prod comparison was made.
+- Tenant groups hold no permission to edit pipelines, targets, or automations, create releases, or ignore, retry, or terminate jobs.
+
+### Promotion
+
+- Dev rolls out automatically with a smoke test. Test is promoted automatically after a successful dev rollout and runs the eval gate (which executes the tenant's test evaluation job) and the security gate.
+- Prod requires approval by a tenant release approver, who holds Cloud Deploy Approver on the tenant pipeline conditioned on the prod target and no role on prod projects.
+- Before the prod rollout, a platform-owned predeploy task running as `sa-<tenant>-deploy-prod` in a private worker pool confirms passing test gate records for the release, verifies the `built-by-cloud-build` attestation, copies the workload image by digest into the tenant's prod repository in `jd-aip-prod-shared`, confirms the digest is unchanged, and signs a prod attestation with the tenant's prod attestor. The prod target deploys from the prod repository through a target-level deploy parameter. Deploy accounts hold `actAs` only on their matching runtime account.
+- The evaluation harness is not promoted per tenant. `sa-harness-build` publishes it by digest to a platform prod harness repository in `jd-aip-prod-shared`, and the prod Binary Authorization policy admits images from that repository by allowlist pattern, or through a platform harness attestor if allowlists are not supported. This keeps prod deploy accounts from needing `actAs` on evaluation accounts, which would let a deployed service run with golden-data and results access.
+- Prod Binary Authorization requires the tenant's prod attestor, so a prod attestation means the image passed platform gates and was promoted.
+- Enforcement cannot be switched off by a deployment. The org layer sets `run.allowedBinaryAuthorizationPolicies` to `default` on the `prod` folder, so a prod Cloud Run service or job deployed or updated without the project's Binary Authorization policy is rejected. Without it, Cloud Run Developer, which deploy accounts hold, could deploy with enforcement omitted or disabled.
+- Prod rolls out as a canary at 10% and 50%, then `stable`, with verification in every phase and automated advancement after verification passes. Soak time sits inside the verify task.
+
+### Recovery
+
+- A repair rule on the prod target rolls back without retrying when a deploy or verify job fails in any phase, creating a rollout of the last successful release at `stable`.
+- A stalled canary is cancelled and rolled back by the release approver, who holds a rollback-only custom role on the tenant pipeline and prod target.
+- After full rollout, the release approver rolls back through the runbook, naming the release to restore.
+- A failed daily canary evaluation leads to rollback only when the latest release caused it; otherwise the tenant fixes forward.
+- As a last resort, a `platform-prod-admin` holder moves Cloud Run traffic directly, then restores Cloud Deploy with a rollback rollout. Dev and test have no automatic rollback.
+
+### Shared changes
+
+- A platform-owned impact map links each shared path to the layers or tenant repositories that consume it, and CI plans every mapped layer for every tenant. A tenant is affected when its plan shows changes.
+- Shared changes roll out with approval and verification at each boundary: `team-support` nonprod first, then remaining nonprod, then prod. Gate bundle changes advance stage by stage and are verified with a fresh pilot release.
+- Build steps, pipelines, gate tasks, the gate bundle, minimum thresholds, and automation rules need no tenant repository change. Starter template changes reach tenant repositories through automated pull requests, and the gate bundle can raise the minimum supported template version for security-relevant changes.
+
+## Consequences
+
+**Positive**
+
+- Every tenant inherits the same promotion path, gates, and recovery.
+- Tenants cannot edit, remove, or weaken mandatory gates, and every release records the gate version it was checked against.
+- A prod attestation proves the image passed platform gates, not only that it was built.
+- A failed canary returns traffic to the previous release without human action.
+- A defect in a shared change stops at the pilot.
+
+**Negative and accepted risks**
+
+- Tenant test code still runs inside builds that publish images; per-tenant build identities limit the effect to that tenant, and release creation is outside those builds.
+- Each tenant needs a fourth delivery identity and a second main-branch trigger, and a release starts slightly later than the build because it waits for the completion notification.
+- A gate bundle change makes in-flight releases fail promotion, so they must be rebuilt.
+- The first prod release has no canary and no rollback target. Rollback goes straight to 100% without re-running health checks.
+- Template updates depend on tenants merging pull requests; only security-relevant changes are forced.
+- Lab canary verification relies on synthetic traffic, because organic traffic at 10% is too low to measure.
+- A daily evaluation failure with no release change has no automatic remedy.
+- A previous release is a valid rollback target only while its pinned model remains available.
+- Binary Authorization breakglass can still be set by identities that can update services, because the organization policy requires the policy but does not block breakglass. An audit query alerts on every breakglass deployment as a separate control.
+
+## Implementation verification
+
+- Traffic split after a failed canary verification with automation disabled, and automatic rollback to 100% on the previous revision with automation enabled.
+- Whether rollback rollouts on the prod target wait for approval, which release a bare rollback selects, and the minimal permissions, including any `actAs`, for the rollback-only role.
+- Pipeline-defined verify and predeploy tasks for Cloud Run canaries, predeploy failure blocking deployment, deploy parameters reaching tasks, and the verify timeout.
+- Inline trigger configuration through Terraform; one tenant's build identity denied the other's repository and pipeline; a pull request build cannot publish.
+- A build whose image publication fails produces no release; a duplicate completion notification does not create a second release; the release references the published digest; the release trigger fires only for the tenant's successful main builds.
+- Digest-preserving promotion into `jd-aip-prod-shared`, prod attestation signing, and Binary Authorization rejection of an unattested image.
+- A prod service or job deployed with Binary Authorization omitted or disabled is rejected by `run.allowedBinaryAuthorizationPolicies`, both through the pipeline and directly, and a breakglass deployment raises an alert.
+- A superseded gate bundle version refused at promotion, and a weaker thresholds file rejected by CI and by the gate runner.
+
+See [Implementation verification](../../architecture.md#17-implementation-verification).
+
+## Related decisions
+
+- [ADR-002](ADR-002-layered-provisioning-and-state.md): the platform per-tenant layer creates pipelines, triggers, and identities, and Terraform changes follow serialized, plan-approved applies.
+- [ADR-006](ADR-006-shared-prod-perimeter.md): prod images and attestors live in `jd-aip-prod-shared` inside the perimeter.
+- [ADR-007](ADR-007-model-armor-floor-settings.md): Model Armor block spikes are a rollback trigger.
+- [ADR-010](ADR-010-api-invocation-boundaries.md): release approvers approve without prod project roles.
+- [ADR-011](ADR-011-tenant-local-evaluation.md): evaluation jobs that run the eval gate and daily canary evaluation.
