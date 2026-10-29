@@ -11,6 +11,7 @@ locals {
       org_id             = var.org_id
       billing_account    = var.billing_account
       platform_folder_id = local.platform_folder_id
+      footprint          = var.platform_footprint
     }
   }
 }

@@ -7,3 +7,4 @@ github_app_installation_id        = 0
 github_oauth_token_secret_version = "projects/REPLACE/secrets/REPLACE/versions/1"
 platform_repo_uri                 = "https://github.com/REPLACE_OWNER/tenantloom-ai.git"
 # quota_project                   = "jd-aip-bootstrap"
+platform_footprint                = "full"

@@ -15,6 +15,17 @@ variable "platform_folder_id" {
   description = "Numeric ID of the platform folder that holds the shared projects."
 }
 
+variable "footprint" {
+  type        = string
+  default     = "full"
+  description = "full: separate ops, eval, and kms projects. lab: eval and kms contents live in ops, for billing accounts that can link only a few projects."
+
+  validation {
+    condition     = contains(["full", "lab"], var.footprint)
+    error_message = "footprint must be full or lab."
+  }
+}
+
 variable "project_prefix" {
   type        = string
   default     = "jd-aip-"

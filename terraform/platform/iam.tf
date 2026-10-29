@@ -4,10 +4,15 @@
 locals {
   plan_member = "serviceAccount:sa-plan-platform@${local.ci_project}.iam.gserviceaccount.com"
 
-  plan_roles = {
+  role_plan_roles = {
     ops  = ["roles/browser", "roles/iam.securityReviewer", "roles/serviceusage.serviceUsageViewer", "roles/iam.serviceAccountViewer", "roles/bigquery.metadataViewer", "roles/artifactregistry.reader"]
     eval = ["roles/browser", "roles/iam.securityReviewer", "roles/serviceusage.serviceUsageViewer", "roles/iam.serviceAccountViewer", "roles/bigquery.metadataViewer"]
     kms  = ["roles/browser", "roles/iam.securityReviewer", "roles/serviceusage.serviceUsageViewer", "roles/cloudkms.viewer"]
+  }
+
+  plan_roles = {
+    for h in keys(local.projects) :
+    h => distinct(flatten([for role, hosted_in in local.host : local.role_plan_roles[role] if hosted_in == h]))
   }
 
   plan_grants = merge([

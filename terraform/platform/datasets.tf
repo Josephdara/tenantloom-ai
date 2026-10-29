@@ -2,7 +2,7 @@
 
 locals {
   datasets = {
-    eval_runs      = "eval"
+    eval_runs      = local.host["eval"]
     access_reviews = "ops"
     showback       = "ops"
   }
