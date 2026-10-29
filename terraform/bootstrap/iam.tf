@@ -93,6 +93,19 @@ resource "google_storage_bucket_iam_member" "grants" {
   depends_on = [google_storage_bucket.state, google_storage_bucket.plans, google_storage_bucket.lock]
 }
 
+# gcloud reads an object before uploading it, so each plan identity can read saved plans under its own layer only.
+resource "google_storage_bucket_iam_member" "plan_reads_own_layer" {
+  for_each = local.ci_layers
+  bucket   = google_storage_bucket.plans.name
+  role     = "roles/storage.objectViewer"
+  member   = local.plan[each.value.plan]
+
+  condition {
+    title      = "saved-plans-${each.key}"
+    expression = "resource.name.startsWith(\"projects/_/buckets/${local.plan_bucket}/objects/${each.key}/\")"
+  }
+}
+
 resource "google_bigquery_dataset_iam_member" "grants" {
   for_each   = local.dataset_grants
   project    = google_project.bootstrap.project_id
