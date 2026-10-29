@@ -1,0 +1,43 @@
+# Approval-gated apply: applies only the saved plan from the main plan build of the same commit.
+# Prepare may fail without stopping the build, so the finish step always records the outcome and releases the lock.
+
+steps:
+  - id: prepare
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: bash
+    args: ["cloudbuild/scripts/apply-prepare.sh"]
+    allowFailure: true
+
+  - id: apply
+    name: hashicorp/terraform:1.16.4
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        [ -f /workspace/ci/ready ] || exit 0
+        terraform -chdir="${_TF_DIR}" init -input=false \
+          -backend-config="bucket=${_STATE_BUCKET}" -backend-config="prefix=${_STATE_PREFIX}" \
+          && terraform -chdir="${_TF_DIR}" apply -input=false /workspace/ci/tfplan
+        echo $$? > /workspace/ci/apply_rc
+
+  - id: finish
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: bash
+    args: ["cloudbuild/scripts/apply-finish.sh"]
+
+timeout: 3600s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  env:
+    - TF_IN_AUTOMATION=1
+    - LAYER=${_LAYER}
+    - STATE_PREFIX=${_STATE_PREFIX}
+    - PLAN_BUCKET=${_PLAN_BUCKET}
+    - LOCK_BUCKET=${_LOCK_BUCKET}
+    - PLAN_TRIGGER_ID=${_PLAN_TRIGGER_ID}
+    - BUILD_ID=${BUILD_ID}
+    - COMMIT_SHA=${COMMIT_SHA}
+    - REGION=${LOCATION}
+    - PROJECT_ID=${PROJECT_ID}

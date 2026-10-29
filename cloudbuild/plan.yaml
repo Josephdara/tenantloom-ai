@@ -1,0 +1,38 @@
+# Main branch plan: saves the plan and its hash for the approval-gated apply build of the same commit.
+
+steps:
+  - id: init
+    name: hashicorp/terraform:1.16.4
+    args:
+      - -chdir=${_TF_DIR}
+      - init
+      - -input=false
+      - -backend-config=bucket=${_STATE_BUCKET}
+      - -backend-config=prefix=${_STATE_PREFIX}
+
+  - id: plan
+    name: hashicorp/terraform:1.16.4
+    args: ["-chdir=${_TF_DIR}", "plan", "-input=false", "-lock=false", "-out=tfplan"]
+
+  - id: show
+    name: hashicorp/terraform:1.16.4
+    args: ["-chdir=${_TF_DIR}", "show", "-no-color", "tfplan"]
+
+  - id: upload
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        cd "${_TF_DIR}"
+        sha256sum tfplan > tfplan.sha256
+        gcloud storage cp tfplan tfplan.sha256 "gs://${_PLAN_BUCKET}/${_LAYER}/${BUILD_ID}/"
+
+timeout: 1200s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  env:
+    - TF_IN_AUTOMATION=1

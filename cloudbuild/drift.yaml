@@ -1,0 +1,23 @@
+# Drift check: plans against live infrastructure and fails when changes are found. Never applies.
+
+steps:
+  - id: init
+    name: hashicorp/terraform:1.16.4
+    args:
+      - -chdir=${_TF_DIR}
+      - init
+      - -input=false
+      - -backend-config=bucket=${_STATE_BUCKET}
+      - -backend-config=prefix=${_STATE_PREFIX}
+
+  - id: plan
+    name: hashicorp/terraform:1.16.4
+    args: ["-chdir=${_TF_DIR}", "plan", "-input=false", "-lock=false", "-detailed-exitcode"]
+
+timeout: 1200s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  env:
+    - TF_IN_AUTOMATION=1
