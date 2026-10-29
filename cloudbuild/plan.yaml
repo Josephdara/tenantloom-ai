@@ -1,6 +1,11 @@
 # Main branch plan: saves the plan and its hash for the approval-gated apply build of the same commit.
 
 steps:
+  - id: config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/${_LAYER}.auto.tfvars.json", "${_TF_DIR}/"]
+
   - id: init
     name: hashicorp/terraform:1.16.4
     args:

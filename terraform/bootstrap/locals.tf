@@ -1,8 +1,9 @@
 # Shared names, labels, the API list, and the layers run by infrastructure CI.
 
 locals {
-  project_id         = "${var.project_prefix}bootstrap"
-  platform_folder_id = google_folder.platform.folder_id
+  project_id            = "${var.project_prefix}bootstrap"
+  platform_folder_id    = trimprefix(data.google_active_folder.platform.name, "folders/")
+  ai_platform_folder_id = trimprefix(data.google_active_folder.ai_platform.name, "folders/")
 
   labels = {
     component  = "bootstrap"

@@ -1,6 +1,11 @@
 # Drift check: plans against live infrastructure and fails when changes are found. Never applies.
 
 steps:
+  - id: config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/${_LAYER}.auto.tfvars.json", "${_TF_DIR}/"]
+
   - id: init
     name: hashicorp/terraform:1.16.4
     args:
