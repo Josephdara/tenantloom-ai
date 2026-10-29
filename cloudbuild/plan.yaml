@@ -32,7 +32,10 @@ steps:
         set -euo pipefail
         cd "${_TF_DIR}"
         sha256sum tfplan > tfplan.sha256
-        gcloud storage cp tfplan tfplan.sha256 "gs://${_PLAN_BUCKET}/${_LAYER}/${BUILD_ID}/"
+        # Full object names: copying into a prefix makes gcloud read it first, which object creators cannot do.
+        dest="gs://${_PLAN_BUCKET}/${_LAYER}/${BUILD_ID}"
+        gcloud storage cp tfplan "$${dest}/tfplan"
+        gcloud storage cp tfplan.sha256 "$${dest}/tfplan.sha256"
 
 timeout: 1200s
 
