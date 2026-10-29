@@ -59,5 +59,12 @@ locals {
       state_bucket = "platform"
       state_prefix = "org"
     }
+    platform = {
+      dir          = "terraform/platform"
+      plan         = "platform"
+      apply        = "platform"
+      state_bucket = "platform"
+      state_prefix = "platform"
+    }
   }
 }
