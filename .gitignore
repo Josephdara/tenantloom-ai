@@ -1,3 +1,10 @@
 agents.md
 tenantloom_ai.pdf
 tmp/
+*.env
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
