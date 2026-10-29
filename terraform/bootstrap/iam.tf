@@ -14,6 +14,7 @@ locals {
     plan_org_folders   = { member = local.plan.org, role = "roles/resourcemanager.folderViewer" }
     plan_org_iam       = { member = local.plan.org, role = "roles/iam.securityReviewer" }
     plan_org_logging   = { member = local.plan.org, role = "roles/logging.viewer" }
+    plan_org_viewer    = { member = local.plan.org, role = "roles/resourcemanager.organizationViewer" }
     plan_platform_acm  = { member = local.plan.platform, role = "roles/accesscontextmanager.policyReader" }
     plan_platform_fold = { member = local.plan.platform, role = "roles/resourcemanager.folderViewer" }
   }
