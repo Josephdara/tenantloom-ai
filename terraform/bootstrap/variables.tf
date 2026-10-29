@@ -54,7 +54,7 @@ variable "github_app_installation_id" {
 
 variable "github_oauth_token_secret_version" {
   type        = string
-  description = "Secret Manager version the console created for the connection, in the form projects/P/secrets/S/versions/V."
+  description = "Secret Manager version the console created for the connection, in the form projects/P/locations/L/secrets/S/versions/V."
 }
 
 variable "platform_repo_uri" {
