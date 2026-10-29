@@ -29,6 +29,8 @@ locals {
     { for k, m in local.apply : "logs_apply_${k}" => { member = m, role = "roles/logging.logWriter" } },
     { for k, m in local.plan : "logs_plan_${k}" => { member = m, role = "roles/logging.logWriter" } },
     { for k, m in local.apply : "builds_read_${k}" => { member = m, role = "roles/cloudbuild.builds.viewer" } },
+    { for k, m in local.apply : "buckets_apply_${k}" => { member = m, role = "roles/storage.bucketViewer" } },
+    { for k, m in local.plan : "buckets_plan_${k}" => { member = m, role = "roles/storage.bucketViewer" } },
     {
       gov_approve     = { member = "group:${var.governance_group}", role = "roles/cloudbuild.builds.approver" }
       gov_builds_read = { member = "group:${var.governance_group}", role = "roles/cloudbuild.builds.viewer" }
