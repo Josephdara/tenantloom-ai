@@ -1,4 +1,4 @@
-# Shared names, labels, and the API list for the bootstrap project.
+# Shared names, labels, the API list, and the layers run by infrastructure CI.
 
 locals {
   project_id         = "${var.project_prefix}bootstrap"
@@ -48,5 +48,15 @@ locals {
     org      = "sa-plan-org"
     platform = "sa-plan-platform"
     tenant   = "sa-plan-tenant"
+  }
+
+  ci_layers = {
+    org = {
+      dir          = "terraform/org"
+      plan         = "org"
+      apply        = "org"
+      state_bucket = "platform"
+      state_prefix = "org"
+    }
   }
 }

@@ -1,4 +1,4 @@
-# Organization, billing account, bucket, and dataset grants for the provisioning identities.
+# Organization, billing account, project, bucket, and dataset grants for CI identities and groups.
 # Additive bindings only; authoritative policies would drop unmanaged org bindings.
 
 locals {
@@ -24,6 +24,17 @@ locals {
     factory_user  = { member = local.apply.factory, role = "roles/billing.user" }
     plan_org_view = { member = local.plan.org, role = "roles/billing.viewer" }
   }
+
+  project_grants = merge(
+    { for k, m in local.apply : "logs_apply_${k}" => { member = m, role = "roles/logging.logWriter" } },
+    { for k, m in local.plan : "logs_plan_${k}" => { member = m, role = "roles/logging.logWriter" } },
+    { for k, m in local.apply : "builds_read_${k}" => { member = m, role = "roles/cloudbuild.builds.viewer" } },
+    {
+      gov_approve     = { member = "group:${var.governance_group}", role = "roles/cloudbuild.builds.approver" }
+      gov_builds_read = { member = "group:${var.governance_group}", role = "roles/cloudbuild.builds.viewer" }
+      gov_logs_read   = { member = "group:${var.governance_group}", role = "roles/logging.viewer" }
+    },
+  )
 
   bucket_grants = merge(
     {
@@ -61,6 +72,13 @@ resource "google_billing_account_iam_member" "grants" {
   billing_account_id = var.billing_account
   role               = each.value.role
   member             = each.value.member
+}
+
+resource "google_project_iam_member" "grants" {
+  for_each = local.project_grants
+  project  = google_project.bootstrap.project_id
+  role     = each.value.role
+  member   = each.value.member
 }
 
 resource "google_storage_bucket_iam_member" "grants" {
