@@ -7,6 +7,11 @@ locals {
       ai_platform_folder_id = local.ai_platform_folder_id
       platform_folder_id    = local.platform_folder_id
     }
+    platform = {
+      org_id             = var.org_id
+      billing_account    = var.billing_account
+      platform_folder_id = local.platform_folder_id
+    }
   }
 }
 
