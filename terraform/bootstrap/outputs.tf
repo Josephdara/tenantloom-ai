@@ -9,11 +9,11 @@ output "project_number" {
 }
 
 output "platform_folder_id" {
-  value = google_folder.platform.folder_id
+  value = local.platform_folder_id
 }
 
 output "ai_platform_folder_id" {
-  value = google_folder.ai_platform.folder_id
+  value = local.ai_platform_folder_id
 }
 
 output "state_buckets" {

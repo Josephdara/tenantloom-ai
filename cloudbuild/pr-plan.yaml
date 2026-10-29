@@ -1,6 +1,11 @@
 # Pull request check: format, validate, and plan with read-only access. Nothing is saved.
 
 steps:
+  - id: config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/${_LAYER}.auto.tfvars.json", "${_TF_DIR}/"]
+
   - id: fmt
     name: hashicorp/terraform:1.16.4
     args: ["-chdir=${_TF_DIR}", "fmt", "-check", "-recursive"]
