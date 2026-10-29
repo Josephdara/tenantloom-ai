@@ -83,3 +83,44 @@ run "harness_tags_are_immutable" {
     error_message = "Harness tags must be immutable."
   }
 }
+
+run "lab_footprint_hosts_eval_and_kms_in_ops" {
+  command = apply
+
+  variables {
+    footprint = "lab"
+  }
+
+  assert {
+    condition     = keys(google_project.shared) == ["ops"]
+    error_message = "The lab footprint must create only the ops project."
+  }
+
+  assert {
+    condition     = google_bigquery_dataset.shared["eval_runs"].project == "jd-aip-ops"
+    error_message = "In the lab footprint, eval_runs must live in ops."
+  }
+
+  assert {
+    condition = alltrue([
+      for api in ["aiplatform.googleapis.com", "cloudkms.googleapis.com", "run.googleapis.com", "storage.googleapis.com"] :
+      contains([for s in google_project_service.shared : s.service], api)
+    ])
+    error_message = "The ops project must enable the APIs of the roles it hosts."
+  }
+
+  assert {
+    condition     = length(google_project_iam_member.plan) == length(distinct([for g in google_project_iam_member.plan : g.role]))
+    error_message = "Merged roles must not produce duplicate plan grants."
+  }
+}
+
+run "footprint_rejects_unknown_values" {
+  command = plan
+
+  variables {
+    footprint = "small"
+  }
+
+  expect_failures = [var.footprint]
+}

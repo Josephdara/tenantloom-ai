@@ -93,7 +93,8 @@ resource "google_storage_bucket_iam_member" "grants" {
   depends_on = [google_storage_bucket.state, google_storage_bucket.plans, google_storage_bucket.lock]
 }
 
-# gcloud reads an object before uploading it, so each plan identity can read saved plans under its own layer only.
+# gcloud lists and reads before uploading. Listing is checked on the bucket, so the condition allows the bucket
+# itself (object names only) and object reads under the identity's own layer.
 resource "google_storage_bucket_iam_member" "plan_reads_own_layer" {
   for_each = local.ci_layers
   bucket   = google_storage_bucket.plans.name
@@ -102,7 +103,7 @@ resource "google_storage_bucket_iam_member" "plan_reads_own_layer" {
 
   condition {
     title      = "saved-plans-${each.key}"
-    expression = "resource.name.startsWith(\"projects/_/buckets/${local.plan_bucket}/objects/${each.key}/\")"
+    expression = "resource.name == \"projects/_/buckets/${local.plan_bucket}\" || resource.name.startsWith(\"projects/_/buckets/${local.plan_bucket}/objects/${each.key}/\")"
   }
 }
 

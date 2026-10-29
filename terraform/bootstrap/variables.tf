@@ -26,6 +26,12 @@ variable "project_prefix" {
   default = "jd-aip-"
 }
 
+variable "platform_footprint" {
+  type        = string
+  default     = "full"
+  description = "Platform layer footprint: full for separate ops, eval, and kms projects, or lab to host eval and kms in ops."
+}
+
 variable "quota_project" {
   type    = string
   default = null

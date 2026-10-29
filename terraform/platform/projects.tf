@@ -1,9 +1,10 @@
-# Shared nonprod platform projects and the APIs each one uses.
+# Shared nonprod platform projects and the APIs each one uses. The lab footprint hosts the eval and kms
+# roles in the ops project.
 
 locals {
   ci_project = "${var.project_prefix}bootstrap"
 
-  projects = {
+  role_apis = {
     ops = [
       "aiplatform.googleapis.com",
       "artifactregistry.googleapis.com",
@@ -26,6 +27,13 @@ locals {
       "cloudkms.googleapis.com",
       "logging.googleapis.com",
     ]
+  }
+
+  host = { for role in keys(local.role_apis) : role => var.footprint == "lab" ? "ops" : role }
+
+  projects = {
+    for h in distinct(values(local.host)) :
+    h => sort(distinct(flatten([for role, hosted_in in local.host : local.role_apis[role] if hosted_in == h])))
   }
 
   project_services = merge([
