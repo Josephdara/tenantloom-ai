@@ -12,6 +12,11 @@ variable "platform_folder_id" {
   type = string
 }
 
+variable "project_prefix" {
+  type    = string
+  default = "jd-aip-"
+}
+
 variable "region" {
   type    = string
   default = "us-east4"
