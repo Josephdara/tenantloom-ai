@@ -55,6 +55,37 @@ resource "google_org_policy_policy" "vm_external_ip" {
   }
 }
 
+import {
+  to = google_org_policy_policy.allowed_member_domains
+  id = "${local.org_parent}/policies/iam.allowedPolicyMemberDomains"
+}
+
+resource "google_org_policy_policy" "allowed_member_domains" {
+  name   = "${local.org_parent}/policies/iam.allowedPolicyMemberDomains"
+  parent = local.org_parent
+
+  spec {
+    rules {
+      values {
+        allowed_values = [data.google_organization.this.directory_customer_id]
+      }
+    }
+  }
+}
+
+resource "google_org_policy_policy" "resource_locations" {
+  name   = "${local.org_parent}/policies/gcp.resourceLocations"
+  parent = local.org_parent
+
+  spec {
+    rules {
+      values {
+        allowed_values = ["in:us-locations"]
+      }
+    }
+  }
+}
+
 resource "google_org_policy_policy" "allowed_models_default" {
   name   = "${google_folder.ai_platform.name}/policies/vertexai.allowedModels"
   parent = google_folder.ai_platform.name
