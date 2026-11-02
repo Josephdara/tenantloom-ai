@@ -12,8 +12,9 @@ variable "billing_account" {
   type = string
 }
 
-variable "budget_amount_usd" {
-  type = number
+variable "budget_amount" {
+  type        = number
+  description = "Monthly amount in the billing account's currency."
 }
 
 variable "alert_email" {
