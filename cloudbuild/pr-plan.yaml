@@ -4,6 +4,30 @@ steps:
     entrypoint: gcloud
     args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/platform.auto.tfvars.json", "terraform/"]
 
+  - id: deny-cloud
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -u
+        status=0
+        expect_denied() {
+          local reason="$$1"; shift
+          if "$$@" >/tmp/out 2>&1; then
+            echo "UNEXPECTED ALLOW: $$*"; status=1
+          elif grep -q "$$reason" /tmp/out; then
+            echo "DENIED as expected ($$reason): $$*"
+          else
+            echo "FAILED for another reason: $$*"; cat /tmp/out; status=1
+          fi
+        }
+        echo negative-test > /tmp/write.txt
+        expect_denied storage.objects.create gcloud storage cp /tmp/write.txt "gs://${_STATE_BUCKET}/negative-test/write.txt"
+        expect_denied iam.serviceAccounts.getAccessToken gcloud auth print-access-token --impersonate-service-account="sa-terraform@${PROJECT_ID}.iam.gserviceaccount.com"
+        expect_denied bigquery.jobs.create bq --project_id="${PROJECT_ID}" query --use_legacy_sql=false "SELECT 1"
+        exit $$status
+
   - id: fmt
     name: hashicorp/terraform:1.16.4
     args: ["-chdir=terraform", "fmt", "-check", "-recursive"]
@@ -16,6 +40,27 @@ steps:
       - -input=false
       - -backend-config=bucket=${_STATE_BUCKET}
       - -backend-config=prefix=platform
+
+  - id: deny-terraform
+    name: hashicorp/terraform:1.16.4
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        status=0
+        expect_failure() {
+          reason="$$1"; shift
+          if "$$@" >/tmp/out 2>&1; then
+            echo "UNEXPECTED SUCCESS: $$*"; status=1
+          elif grep -q "$$reason" /tmp/out; then
+            echo "FAILED as expected ($$reason): $$*"
+          else
+            echo "FAILED for another reason: $$*"; cat /tmp/out; status=1
+          fi
+        }
+        expect_failure "Error acquiring the state lock" terraform -chdir=terraform plan -input=false -lock=true -lock-timeout=0s
+        expect_failure "Instance cannot be destroyed" terraform -chdir=terraform plan -destroy -input=false -lock=false
+        exit $$status
 
   - id: validate
     name: hashicorp/terraform:1.16.4
