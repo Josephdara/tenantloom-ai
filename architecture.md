@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Owner | Joseph Olutimehin |
-| Status | Planned. Nothing in this document is implemented or verified. |
+| Status | The platform foundation in section 5 is implemented and partly verified; see [foundation evidence](docs/evidence/foundation.md). Everything else is planned. |
 | Build plan | TenantLoom AI |
 | Organization | `josephdara.com` (Cloud Identity Free) |
 | Footprint | Three projects in `us-east4` |
 
-This document describes the target architecture for TenantLoom AI. Every section describes intended behavior. A control counts as demonstrated only when evidence records the observed result (see [Verification criteria](#16-verification-criteria)). Platform behavior the design depends on but has not yet observed is listed under [Lab checks](#15-lab-checks).
+This document describes the target architecture for TenantLoom AI. Sections describe intended behavior unless they say otherwise. A control counts as demonstrated only when evidence records the observed result (see [Verification criteria](#16-verification-criteria)). Platform behavior the design depends on but has not yet observed is listed under [Lab checks](#15-lab-checks).
 
 **Values to replace.** The domain, `jd-aip-` project IDs, folder name, group and alert addresses, region, and the prod load balancer's DNS name are the owner's planned values. Anyone reproducing the architecture must substitute their own.
 
@@ -16,7 +16,7 @@ This document describes the target architecture for TenantLoom AI. Every section
 
 ## 1. Purpose and scope
 
-TenantLoom AI is a small internal AI platform that provisions governed Gemini and Model Garden access to teams in an organization. A platform team owns the guardrails. Teams onboard through a pull request, and a Terraform tenant module turns that request into a ready-to-use slice of the platform: groups, service accounts, a delivery pipeline, a dataset bucket, a budget, and a dashboard.
+TenantLoom AI is a small internal AI platform that provisions governed Gemini and Model Garden access to teams in an organization. A platform team owns the guardrails. Teams onboard through a pull request, and a Terraform tenant module turns that request into a ready-to-use slice of the platform: access for the team's groups, service accounts, a delivery pipeline, a dataset bucket, a budget, and a dashboard.
 
 Two pilot teams exercise the design:
 
@@ -61,7 +61,7 @@ Each environment's controls tighten toward production:
 | Sandbox | `jd-aip-sandbox` | Shared exploration and candidate evaluation | Catalog models plus candidates; deploy allowed for one open model | Shared by all teams, synthetic data only, endpoint expiry cleanup, Model Armor inspect only |
 | Dev | `jd-aip-nonprod` | Integration, deployed on merge | Approved models, predict only | Pipeline-only changes, Model Armor inspect and block |
 | Test | `jd-aip-nonprod` | Eval, latency, and security gates | Approved models, predict only | Gates must pass before a release is attested |
-| Prod | `jd-aip-prod` | Serves team workloads | Approved models, predict only | Attested images only, approval and canary, perimeter, ingress only from inside and through the load balancer, all egress through a VPC, CMEK, no standing human access |
+| Prod | `jd-aip-prod` | Serves team workloads | Approved models, predict only | Attested images only, approval and canary, perimeter, ingress only from inside and through the load balancer, all egress through a VPC, CMEK, no standing human access granted by the platform (ADR-004 records one inherited administrator exception) |
 
 ## 4. Data flows and the prod perimeter
 
@@ -115,11 +115,11 @@ flowchart LR
 
 ## 5. Platform foundation
 
-- **Bootstrap.** Break-glass applies the platform Terraform root once from the admin workstation, limited to the bootstrap resources and using local state: the three projects under the existing `ai-platform` folder, the state bucket, `sa-terraform` and `sa-terraform-plan` with their roles, a temporary probe account, the GitHub connection, and the platform Cloud Build triggers. The state then moves into the new bucket, and from then on humans no longer apply Terraform (ADR-004). Four steps happen outside Terraform: assigning Groups Admin to `sa-terraform` and a read-only groups role to `sa-terraform-plan` in the Admin console, authorizing the GitHub connection in the console, and setting the branch ruleset on `main` in GitHub.
+- **Bootstrap.** Break-glass applies the platform Terraform root from the admin workstation with local state, limited to the bootstrap resources: the three projects under the existing `ai-platform` folder, which is imported, the state bucket, `sa-terraform` and `sa-terraform-plan` with their roles, a temporary probe account, and the platform Cloud Build triggers. It takes two passes. Between them, the GitHub connection is created with gcloud and authorized in the browser, because the Cloud Build API rejects a connection without GitHub settings; the second pass imports it and adds the repository link and triggers. The state then moves into the new bucket, and from then on humans no longer apply Terraform. Break-glass finally gives up the Owner role Google grants a project's creator. Steps outside Terraform, including the GitHub App installation, the branch ruleset, and the Cloud Identity groups, are in the [bootstrap runbook](docs/runbooks/bootstrap.md) (ADR-004).
 - **Probe.** `sa-probe-build` holds exactly the roles a team build account will get. Showing that it cannot read or write the state bucket is the foundation's exit test, and it is deleted afterward.
-- **State.** One bucket in `jd-aip-nonprod` with uniform access and the GCS backend's built-in locking. Prefixes are `platform/` and `tenants/<id>/`. Only `sa-terraform` can write it, `sa-terraform-plan` can read it, and break-glass recovers it. Platform state manages the bucket itself, protected by `prevent_destroy`, object versioning with a retention period for noncurrent versions, and soft delete, so earlier versions recover a damaged state (ADR-004).
+- **State.** One bucket in `jd-aip-nonprod` with uniform access and the GCS backend's built-in locking. Prefixes are `platform/` and `tenants/<id>/`. Only `sa-terraform` can write it, `sa-terraform-plan` can read it, and break-glass recovers it. Platform state manages the bucket itself, protected by `prevent_destroy`, object versioning with a retention period for noncurrent versions, and soft delete, so earlier versions recover a damaged state. The bucket also holds the CI configuration object, which carries inputs kept out of the repository, such as the organization ID, the billing account, and the budget alert address (ADR-004).
 - **Ownership.** Platform state owns organization policies, the folder, projects, perimeter, catalog allowlists, and shared tooling. Each tenant state owns only that team's slice. No resource appears in two states.
-- **Plan and apply.** Pull request builds run only for repository collaborators and plan as `sa-terraform-plan`, which has no write access anywhere and plans without taking the state lock. Pull request code runs during a plan, so that identity holds nothing worth stealing beyond read access, and state must never contain secrets. On merge, a build running as `sa-terraform` saves the plan and shows it, and a separate apply build waits for Cloud Build approval from `ai-governance`, then applies exactly that saved plan as `sa-terraform`. Terraform rejects a saved plan if the state changed after it was made. Every platform and tenant apply waits for approval, because almost every change touches prod, IAM, or policy (ADR-004). CODEOWNERS assigns the whole repository to `ai-governance`, including `cloudbuild/` and the CODEOWNERS file, because the merge-time build runs repository code as `sa-terraform` before the apply approval. A branch ruleset on `main` requires a pull request and code owner approval, with no bypass.
+- **Plan and apply.** Pull request builds run only for repository collaborators and plan as `sa-terraform-plan`, which has no write access anywhere and plans without taking the state lock. Pull request code runs during a plan, so that identity holds nothing worth stealing beyond read access, and state must never contain secrets. On merge, a build running as `sa-terraform` waits for Cloud Build approval from `ai-governance`, then saves the plan and starts a separate apply build for the same commit. That build waits for a second approval, then applies exactly the saved plan as `sa-terraform`. Approvers read both plans through a log view limited to Cloud Build logs. Terraform rejects a saved plan if the state changed after it was made. Every platform and tenant apply waits for approval, because almost every change touches prod, IAM, or policy (ADR-004). CODEOWNERS assigns the whole repository to `ai-governance`, including `cloudbuild/` and the CODEOWNERS file, because the merge-time build runs repository code as `sa-terraform` before the apply approval. A branch ruleset on `main` requires a pull request, the plan check, and code owner approval. The repository has a single maintainer, so repository administrators can bypass it, only through a pull request, and GitHub records each bypass (ADR-004).
 - **Tenant builds.** Each team's trigger fires only on its own repository and runs as `sa-<id>-build`, which cannot read the state bucket or impersonate `sa-terraform`. Team identities never get project-level storage roles or `roles/cloudbuild.builds.builder`, which grants read and write on every bucket in its project, including the state bucket.
 - **Failed apply.** Fix forward through a pull request. Restore a previous state version only if the state is damaged, and force-unlock only after confirming no apply is running.
 
@@ -142,7 +142,7 @@ alert_channel: docs-alerts@josephdara.com
 
 ### What the tenant module creates
 
-- Cloud Identity groups `<id>-developers` and `<id>-release-approvers`, managed by the team's owners group.
+- IAM, PAM eligibility, and log view access for the team's Cloud Identity groups `<id>-developers` and `<id>-release-approvers`. An administrator creates these groups and manages their membership in the Admin console; Terraform manages no groups (ADR-004).
 - Runtime, eval, build, and deploy service accounts with the scopes in the [identity matrix](#identity-and-isolation-matrix).
 - A Cloud Deploy pipeline with dev, test, and prod targets, a Cloud Build trigger on the team's repository, and an Artifact Registry repository.
 - A golden dataset bucket with separate development and held-out paths.
@@ -153,18 +153,19 @@ alert_channel: docs-alerts@josephdara.com
 
 ### Onboarding workflow
 
-1. The team opens a pull request adding `tenants/<id>.yaml`.
-2. CI validates the file, checks requested models against the catalog and data classification, and posts the Terraform plan made by `sa-terraform-plan`.
-3. A member of `ai-governance` reviews and approves the pull request, as CODEOWNERS requires.
-4. Merge saves a new plan as `sa-terraform`, and a member of `ai-governance` approves that saved plan in Cloud Build.
-5. The apply build applies it. Readiness checks then deploy the starter service to dev, call it as a team developer, and confirm the team's log view.
+1. An administrator creates the team's two groups in the Admin console and adds their members.
+2. The team opens a pull request adding `tenants/<id>.yaml`.
+3. CI validates the file, checks requested models against the catalog and data classification, and posts the Terraform plan made by `sa-terraform-plan`.
+4. A member of `ai-governance` reviews and approves the pull request, as CODEOWNERS requires.
+5. Merge starts a plan as `sa-terraform` after `ai-governance` approves it, and a member of `ai-governance` approves the saved plan in Cloud Build.
+6. The apply build applies it. Readiness checks then deploy the starter service to dev, call it as a team developer, and confirm the team's log view.
 
-Time to provision is measured from approval of the saved plan to passing readiness checks, with a one-hour target.
+Time to provision is measured from approval of the saved plan to passing readiness checks, with a one-hour target. Group creation happens before the pull request and is not included.
 
 ### Recovery and offboarding
 
 - **Failed provisioning.** The tenant apply is idempotent. Partial resources stay in the team's own state, and a rerun after the fix completes the slice.
-- **Offboarding.** Disable the team's trigger and pipeline, remove its IAM bindings, disable its service accounts, export its audit history and eval results to an auditor-readable archive bucket, then destroy only the team's state. Other teams' resources live in other states and are untouched.
+- **Offboarding.** Disable the team's trigger and pipeline, remove its IAM bindings, disable its service accounts, export its audit history and eval results to an auditor-readable archive bucket, destroy only the team's state, and an administrator deletes the team's groups. Other teams' resources live in other states and are untouched.
 
 ## 7. Governance
 
@@ -251,11 +252,12 @@ Admin Activity audit logs are always on. Data Access audit logs are enabled on t
 | `sa-<id>-build` | The team's repository, Artifact Registry repository, and pipeline; no project-level storage roles | Build, push, and create releases for that team | Read Terraform state, impersonate `sa-terraform`, or touch other teams' pipelines |
 | `sa-<id>-deploy-<env>` | The team's Cloud Run services in one environment; execution account for that Cloud Deploy target | Deploy revisions, act as that team's runtime account, and start the team's eval job for verification | Deploy other teams' services |
 | `sa-attestor` | The attestor and its KMS signing key in nonprod | Sign the passed-test attestation after test gates pass | Be used by tenant triggers |
-| `sa-terraform` | Admin roles for each managed service on the `ai-platform` folder, inherited by the three projects; organization policy and Access Context Manager administration at the organization; Billing Account Costs Manager and Billing Account User; Groups Admin in Cloud Identity; Role Administrator on each project; `actAs` on itself so it can manage its own triggers (full list in ADR-004) | Apply platform and tenant infrastructure, including model allowlists, the perimeter, budgets, and team groups | Be used by pull request builds or by anything other than the merge-time platform triggers |
-| `sa-terraform-plan` | A custom read-only role in each project without job creation or log-entry reads; Security Reviewer on the folder; read-only roles on organization policies, the access policy, the billing account, and groups; object read on the state bucket (full list in ADR-004) | Plan pull requests | Write anything, create jobs, take the state lock, read secrets, or act as another service account |
+| `sa-terraform` | Admin roles for each managed service on the `ai-platform` folder, inherited by the three projects; organization policy and Access Context Manager administration at the organization; read access to organization IAM; Billing Account Costs Manager and Billing Account User; Role Administrator on each project; `actAs` on itself so it can manage its own triggers (full list in ADR-004) | Apply platform and tenant infrastructure, including model allowlists, the perimeter, and budgets | Be used by pull request builds or by anything other than the merge-time platform triggers; change Cloud Identity groups or its own organization-level grants |
+| `sa-terraform-plan` | A custom read-only role in each project without job creation or log-entry reads; Security Reviewer on the folder; read-only roles on organization policies, organization IAM, the access policy, and the billing account; log writing in nonprod; object read on the state bucket (full list in ADR-004) | Plan pull requests | Write anything, create jobs, take the state lock, read secrets, or act as another service account |
 | `auditors` | Audit dataset and Model Armor log buckets | Read audit and prompt logs | Write or change anything |
+| `ai-governance` | Platform builds in nonprod and the Cloud Build log view | Approve platform plan and apply builds, and read their logs | Read other logs, start builds, or apply changes |
 
-Groups Admin lets `sa-terraform` change any group, including `ai-governance` and `auditors`. A Terraform change to either group needs CODEOWNERS review and apply approval, and a membership change made any other way raises an alert (ADR-004).
+Terraform manages no Cloud Identity groups. Administrators create and maintain every group, including `ai-governance` and `auditors`, in the Admin console, and a membership change to either raises an alert (ADR-004).
 
 Project IAM Admin lets `sa-terraform` grant itself any role in the three projects, so its role list records intent rather than a hard limit. The controls are approval on every apply, CODEOWNERS, and the monthly access review, which flags any grant to `sa-terraform` that ADR-004 does not list.
 
@@ -392,21 +394,21 @@ tenantloom-ai/
 
 ## 14. Planned architecture decision records
 
-ADRs live in `docs/adr/`. ADR-004, ADR-005, and ADR-007 are written; the others are planned.
+ADRs live in `docs/adr/`. ADR-002, ADR-004, ADR-005, and ADR-007 are written; the others are planned.
 
 | ADR | Decision |
 |---|---|
 | ADR-001 | Model access boundary: shared project allowlist at runtime, per-team entitlement enforced in CI |
-| ADR-002 | Three-project layout |
+| [ADR-002](docs/adr/ADR-002-three-project-layout.md) | Three-project layout: sandbox, nonprod with delivery tooling and state, and prod |
 | ADR-003 | Team isolation in shared projects, including team IDs |
-| [ADR-004](docs/adr/ADR-004-state-and-ci-ownership.md) | State and CI ownership: `sa-terraform` scope, read-only pull request plans, approval on every apply, protected state bucket |
+| [ADR-004](docs/adr/ADR-004-state-and-ci-ownership.md) | State and CI ownership: `sa-terraform` scope, read-only pull request plans, approval before every plan and apply, protected state bucket, no Terraform-managed groups |
 | [ADR-005](docs/adr/ADR-005-attested-promotion.md) | Attested promotion with Cloud Deploy: attestor and eval jobs in nonprod, enforced Binary Authorization, per-team eval tables, candidate-targeted canary |
 | ADR-006 | Deployment patterns: publisher, MaaS, and self-deployed |
 | [ADR-007](docs/adr/ADR-007-prod-network-path.md) | Prod network path under VPC Service Controls: load balancer ingress, VPC egress, restricted Google APIs |
 
 ## 15. Lab checks
 
-The design depends on the platform behavior below, which is documented or expected but not yet observed. Each check must pass in the lab, with evidence, before the related control is relied on. Where a check names a fallback, that is the alternative if it fails.
+The design depends on the platform behavior below, which is documented or expected but not yet observed. Each check must pass in the lab, with evidence, before the related control is relied on. Where a check names a fallback, that is the alternative if it fails. Results for checks 9, 12, and 15 are recorded in [foundation evidence](docs/evidence/foundation.md).
 
 1. **Organization policy at project level.** With Organization Policy Administrator granted at the organization, `sa-terraform` can set `vertexai.allowedModels` and other policies on the three projects (ADR-004).
 2. **Group membership alert.** Cloud Identity Free can share its audit logs with Cloud Logging, so a membership change to `ai-governance` or `auditors` raises an alert. Fallback: a scheduled job compares both groups with their expected members (ADR-004).
@@ -418,11 +420,11 @@ The design depends on the platform behavior below, which is documented or expect
 8. **Binary Authorization cannot be turned off or bypassed.** In `jd-aip-prod`, a deploy without Binary Authorization is refused, and the custom constraint refuses breakglass requested through either the manifest annotation or the API's breakglass field. Fallback: accept deployer breakglass as a detected risk, alerted on every use (ADR-005).
 9. **CI role lists are complete.** The first apply as `sa-terraform` and the first pull request plan as `sa-terraform-plan` succeed with the roles in ADR-004. Any missing or unused role is corrected in ADR-004.
 10. **Conditional invoker grants.** A project-level `run.invoker` grant conditioned on service names that start with `<id>-` lets each team's callers invoke only that team's services. Fallback: the tenant module grants invoker on each service after its first deploy (ADR-004).
-11. **Groups reader.** A read-only groups admin role assigned to `sa-terraform-plan` lets it read team groups and memberships through the Cloud Identity API. Fallback: pull request plans that touch groups fail, and those changes are planned at merge time instead (ADR-004).
+11. **Groups reader.** Not applicable. Terraform manages no Cloud Identity groups, so neither CI identity holds a groups role (ADR-004).
 12. **Probe denied.** `sa-probe-build`, holding only the roles a team build account will get, cannot read or write the state bucket. If it can, a project-level role is leaking storage access and is removed before any team onboards (ADR-004).
 13. **Terraform management under enforcement.** With the perimeter enforced, plans as `sa-terraform-plan` and applies as `sa-terraform` succeed against prod resources through the management ingress rules, and break-glass recovery access works (ADR-004, ADR-007).
 14. **Workload APIs on the restricted list.** Every Google API the starter service calls is on the perimeter's restricted list, so the VPC accessible services setting does not block it (ADR-007).
-15. **Review covers the whole repository.** A pull request that changes only `cloudbuild/` or the CODEOWNERS file cannot merge without `ai-governance` approval (ADR-004).
+15. **Review covers the whole repository.** A pull request that changes only `cloudbuild/` or the CODEOWNERS file cannot merge without code owner approval or a recorded administrator bypass (ADR-004).
 16. **PAM access through the perimeter.** With the perimeter enforced, a team developer with an active `<id>-prod-read` grant can view the team's prod services and logs and is refused after the grant expires, and the same holds for `platform-prod-admin` (ADR-007).
 
 ## 16. Verification criteria
