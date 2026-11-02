@@ -1,0 +1,26 @@
+steps:
+  - id: fetch-plan
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "gs://${_STATE_BUCKET}/plans/${COMMIT_SHA}.tfplan", "terraform/tfplan"]
+
+  - id: init
+    name: hashicorp/terraform:1.16.4
+    args:
+      - -chdir=terraform
+      - init
+      - -input=false
+      - -backend-config=bucket=${_STATE_BUCKET}
+      - -backend-config=prefix=platform
+
+  - id: apply
+    name: hashicorp/terraform:1.16.4
+    args: ["-chdir=terraform", "apply", "-input=false", "tfplan"]
+
+timeout: 1800s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  env:
+    - TF_IN_AUTOMATION=1

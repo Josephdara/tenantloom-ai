@@ -1,0 +1,36 @@
+steps:
+  - id: config
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/platform.auto.tfvars.json", "terraform/"]
+
+  - id: init
+    name: hashicorp/terraform:1.16.4
+    args:
+      - -chdir=terraform
+      - init
+      - -input=false
+      - -backend-config=bucket=${_STATE_BUCKET}
+      - -backend-config=prefix=platform
+
+  - id: plan
+    name: hashicorp/terraform:1.16.4
+    args: ["-chdir=terraform", "plan", "-input=false", "-out=tfplan"]
+
+  - id: save
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["storage", "cp", "terraform/tfplan", "gs://${_STATE_BUCKET}/plans/${COMMIT_SHA}.tfplan"]
+
+  - id: start-apply
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
+    entrypoint: gcloud
+    args: ["builds", "triggers", "run", "${_APPLY_TRIGGER}", "--region=${LOCATION}", "--sha=${COMMIT_SHA}"]
+
+timeout: 1200s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+  env:
+    - TF_IN_AUTOMATION=1
