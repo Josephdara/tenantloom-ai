@@ -59,6 +59,7 @@ locals {
 
   # Read access for planning, without job creation, log-entry reads, or secret access.
   plan_reader_permissions = [
+    "bigquery.datasets.get",
     "cloudbuild.builds.get",
     "cloudbuild.builds.list",
     "iam.roles.get",
@@ -66,6 +67,8 @@ locals {
     "iam.serviceAccounts.get",
     "iam.serviceAccounts.getIamPolicy",
     "iam.serviceAccounts.list",
+    "monitoring.notificationChannels.get",
+    "monitoring.notificationChannels.list",
     "resourcemanager.projects.get",
     "resourcemanager.projects.getIamPolicy",
     "serviceusage.services.get",

@@ -3,12 +3,15 @@ locals {
     sandbox = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
     prod    = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
     nonprod = [
+      "bigquery.googleapis.com",
+      "billingbudgets.googleapis.com",
       "cloudbilling.googleapis.com",
       "cloudbuild.googleapis.com",
       "cloudresourcemanager.googleapis.com",
       "iam.googleapis.com",
       "iamcredentials.googleapis.com",
       "logging.googleapis.com",
+      "monitoring.googleapis.com",
       "secretmanager.googleapis.com",
       "serviceusage.googleapis.com",
       "storage.googleapis.com",
@@ -33,7 +36,7 @@ resource "google_project" "env" {
   labels              = merge(var.labels, { env = each.key })
 }
 
-# APIs each project needs for bootstrap.
+# APIs each project needs.
 resource "google_project_service" "enabled" {
   for_each = local.project_apis
 
