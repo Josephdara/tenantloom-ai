@@ -62,7 +62,19 @@ module "state" {
     github_connection_authorized      = var.github_connection_authorized
     github_app_installation_id        = var.github_app_installation_id
     github_oauth_token_secret_version = var.github_oauth_token_secret_version
+    budget_alert_email                = var.budget_alert_email
   }
+}
+
+module "billing" {
+  source = "./modules/billing"
+
+  project_id        = module.projects.project_ids["nonprod"]
+  folder            = google_folder.ai_platform.name
+  billing_account   = var.billing_account
+  budget_amount_usd = var.budget_amount_usd
+  alert_email       = var.budget_alert_email
+  labels            = local.labels
 }
 
 module "cloudbuild" {
