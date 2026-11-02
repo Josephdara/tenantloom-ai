@@ -21,7 +21,3 @@ output "probe_build_service_account" {
 output "github_connection" {
   value = module.cloudbuild.connection
 }
-
-output "github_connection_action_uri" {
-  value = module.cloudbuild.connection_action_uri
-}
