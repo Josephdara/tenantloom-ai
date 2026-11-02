@@ -9,8 +9,10 @@ resource "google_project_iam_member" "cloudbuild_agent_secrets" {
   member  = "serviceAccount:service-${var.project_number}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
 }
 
-# GitHub connection, authorized once in the console.
+# GitHub connection, created and authorized outside Terraform, then imported.
 resource "google_cloudbuildv2_connection" "github" {
+  for_each = local.github_repositories
+
   project  = var.project_id
   location = var.region
   name     = var.github_connection_name
@@ -18,11 +20,8 @@ resource "google_cloudbuildv2_connection" "github" {
   github_config {
     app_installation_id = var.github_app_installation_id
 
-    dynamic "authorizer_credential" {
-      for_each = var.github_oauth_token_secret_version == null ? [] : [var.github_oauth_token_secret_version]
-      content {
-        oauth_token_secret_version = authorizer_credential.value
-      }
+    authorizer_credential {
+      oauth_token_secret_version = var.github_oauth_token_secret_version
     }
   }
 
@@ -36,7 +35,7 @@ resource "google_cloudbuildv2_repository" "platform" {
   project           = var.project_id
   location          = var.region
   name              = "tenantloom-ai"
-  parent_connection = google_cloudbuildv2_connection.github.name
+  parent_connection = google_cloudbuildv2_connection.github[each.key].name
   remote_uri        = var.platform_repo_uri
 }
 

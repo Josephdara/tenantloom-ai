@@ -10,6 +10,12 @@ import {
   id = "folders/${var.folder_id}"
 }
 
+import {
+  for_each = var.github_connection_authorized ? toset(["platform"]) : toset([])
+  to       = module.cloudbuild.google_cloudbuildv2_connection.github[each.key]
+  id       = "projects/${var.project_prefix}nonprod/locations/${var.region}/connections/${var.github_connection_name}"
+}
+
 # Existing ai-platform folder, imported so platform state owns it.
 resource "google_folder" "ai_platform" {
   display_name        = "ai-platform"
