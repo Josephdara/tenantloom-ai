@@ -3,6 +3,7 @@ locals {
     sandbox = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
     prod    = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
     nonprod = [
+      "accesscontextmanager.googleapis.com",
       "bigquery.googleapis.com",
       "billingbudgets.googleapis.com",
       "cloudbilling.googleapis.com",
@@ -12,6 +13,7 @@ locals {
       "iamcredentials.googleapis.com",
       "logging.googleapis.com",
       "monitoring.googleapis.com",
+      "orgpolicy.googleapis.com",
       "secretmanager.googleapis.com",
       "serviceusage.googleapis.com",
       "storage.googleapis.com",
