@@ -67,6 +67,7 @@ locals {
     "iam.serviceAccounts.get",
     "iam.serviceAccounts.getIamPolicy",
     "iam.serviceAccounts.list",
+    "logging.views.get",
     "monitoring.notificationChannels.get",
     "monitoring.notificationChannels.list",
     "resourcemanager.projects.get",
@@ -185,4 +186,24 @@ resource "google_project_iam_member" "governance_build_approver" {
   project = local.nonprod_project
   role    = "roles/cloudbuild.builds.approver"
   member  = "group:${var.governance_group}"
+}
+
+# Log view limited to Cloud Build logs, so approvers can read the plans they approve.
+resource "google_logging_log_view" "cloudbuild" {
+  name        = "cloudbuild"
+  bucket      = "projects/${local.nonprod_project}/locations/global/buckets/_Default"
+  description = "Cloud Build logs for platform plan and apply builds"
+  filter      = "LOG_ID(\"cloudbuild\")"
+}
+
+# Lets ai-governance read build logs through the Cloud Build view only.
+resource "google_project_iam_member" "governance_build_log_reader" {
+  project = local.nonprod_project
+  role    = "roles/logging.viewAccessor"
+  member  = "group:${var.governance_group}"
+
+  condition {
+    title      = "cloudbuild-log-view"
+    expression = "resource.name == \"${google_logging_log_view.cloudbuild.bucket}/views/${google_logging_log_view.cloudbuild.name}\""
+  }
 }
