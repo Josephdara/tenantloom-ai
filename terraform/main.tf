@@ -69,12 +69,12 @@ module "state" {
 module "billing" {
   source = "./modules/billing"
 
-  project_id        = module.projects.project_ids["nonprod"]
-  folder            = google_folder.ai_platform.name
-  billing_account   = var.billing_account
-  budget_amount_usd = var.budget_amount_usd
-  alert_email       = var.budget_alert_email
-  labels            = local.labels
+  project_id      = module.projects.project_ids["nonprod"]
+  folder          = google_folder.ai_platform.name
+  billing_account = var.billing_account
+  budget_amount   = var.budget_amount
+  alert_email     = var.budget_alert_email
+  labels          = local.labels
 }
 
 module "cloudbuild" {

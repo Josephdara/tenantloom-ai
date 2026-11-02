@@ -39,10 +39,10 @@ variable "platform_repo_uri" {
   description = "HTTPS clone URI of this repository."
 }
 
-variable "budget_amount_usd" {
+variable "budget_amount" {
   type        = number
   default     = 100
-  description = "Monthly platform budget across every project in the folder."
+  description = "Monthly platform budget across every project in the folder, in the billing account's currency."
 }
 
 variable "budget_alert_email" {
