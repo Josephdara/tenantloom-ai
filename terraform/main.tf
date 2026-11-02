@@ -16,6 +16,12 @@ import {
   id       = "projects/${var.project_prefix}nonprod/locations/${var.region}/connections/${var.github_connection_name}"
 }
 
+import {
+  for_each = toset(["aiplatform.googleapis.com", "iam.googleapis.com"])
+  to       = module.governance.google_folder_iam_audit_config.data_access[each.key]
+  id       = "folders/${var.folder_id} ${each.key}"
+}
+
 # Existing ai-platform folder, imported so platform state owns it.
 resource "google_folder" "ai_platform" {
   display_name        = "ai-platform"
@@ -30,6 +36,12 @@ module "projects" {
   billing_account = var.billing_account
   project_prefix  = var.project_prefix
   labels          = local.labels
+}
+
+module "governance" {
+  source = "./modules/governance"
+
+  folder = google_folder.ai_platform.name
 }
 
 module "ci_identities" {
