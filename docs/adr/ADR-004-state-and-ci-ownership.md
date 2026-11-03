@@ -49,7 +49,7 @@ Five questions follow from that:
    | `ai-platform` folder | `roles/binaryauthorization.attestorsAdmin`, `roles/binaryauthorization.policyEditor` | The attestor and the prod policy |
    | `ai-platform` folder | `roles/containeranalysis.admin` | The attestation note and its IAM |
    | `ai-platform` folder | `roles/cloudkms.admin` | Key rings, keys, and key IAM, without the ability to use keys |
-   | `ai-platform` folder | `roles/modelarmor.floorSettingsAdmin` | Model Armor floor settings |
+   | `ai-platform` folder | `roles/modelarmor.floorSettingsAdmin`, `roles/modelarmor.admin` | Model Armor floor settings and templates |
    | `ai-platform` folder | `roles/privilegedaccessmanager.admin` | PAM entitlements |
    | `ai-platform` folder | `roles/run.developer` | Team eval jobs |
    | `ai-platform` folder | `roles/cloudscheduler.admin` | Daily canary and drift schedules |
@@ -66,7 +66,7 @@ Five questions follow from that:
    |---|---|
    | Organization | `roles/orgpolicy.policyViewer`, `roles/accesscontextmanager.policyReader`, `roles/iam.organizationRoleViewer` |
    | Billing account | `roles/billing.viewer` |
-   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer`, `roles/compute.networkViewer`, `roles/dns.reader`, `roles/cloudkms.viewer`, `roles/run.viewer`, and the organization custom role `terraformLogConfigReader` |
+   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/modelarmor.viewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer`, `roles/compute.networkViewer`, `roles/dns.reader`, `roles/cloudkms.viewer`, `roles/run.viewer`, and the organization custom role `terraformLogConfigReader` |
    | Each of the three projects | A custom plan reader role holding the get and list permissions Terraform needs, without `bigquery.jobs.create`, any job or workload creation, log-entry reads, or secret access |
    | `jd-aip-nonprod` | `roles/logging.logWriter`, so its builds can write their own logs |
    | State bucket | `roles/storage.objectViewer` |

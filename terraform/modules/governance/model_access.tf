@@ -54,6 +54,15 @@ resource "google_project_iam_member" "model_test_invoker" {
   member  = google_service_account.model_test.member
 }
 
+# Lets the test identity screen prompts and responses with the baseline template.
+resource "google_project_iam_member" "model_test_sanitizer" {
+  for_each = local.model_test_environments
+
+  project = var.project_ids[each.key]
+  role    = "roles/modelarmor.user"
+  member  = google_service_account.model_test.member
+}
+
 # Lets platform administrators run the tests by impersonating the test identity.
 resource "google_service_account_iam_member" "model_test_impersonation" {
   service_account_id = google_service_account.model_test.name

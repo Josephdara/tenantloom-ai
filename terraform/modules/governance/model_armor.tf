@@ -1,4 +1,4 @@
-# Model Armor screens every Agent Platform request: inspect only in sandbox, inspect and block elsewhere.
+# Floor settings: inspect only in sandbox, inspect and block elsewhere, wherever Agent Platform applies them.
 resource "google_model_armor_floorsetting" "project" {
   for_each = var.project_ids
 
@@ -28,6 +28,36 @@ resource "google_model_armor_floorsetting" "project" {
     inspect_only         = each.key == "sandbox" ? true : null
     inspect_and_block    = each.key == "sandbox" ? null : true
     enable_cloud_logging = true
+  }
+}
+
+# Template for application-side screening through the sanitize API; floor settings were not applied to calls on the us endpoint.
+resource "google_model_armor_template" "baseline" {
+  for_each = local.model_test_environments
+
+  project     = var.project_ids[each.key]
+  location    = "us"
+  template_id = "baseline"
+
+  filter_config {
+    pi_and_jailbreak_filter_settings {
+      filter_enforcement = "ENABLED"
+      confidence_level   = "MEDIUM_AND_ABOVE"
+    }
+
+    malicious_uri_filter_settings {
+      filter_enforcement = "ENABLED"
+    }
+
+    sdp_settings {
+      basic_config {
+        filter_enforcement = "ENABLED"
+      }
+    }
+  }
+
+  template_metadata {
+    log_sanitize_operations = true
   }
 }
 
