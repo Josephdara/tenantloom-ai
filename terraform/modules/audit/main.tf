@@ -144,7 +144,7 @@ resource "google_monitoring_alert_policy" "watched_group_changes" {
     display_name = "Membership change logged"
 
     condition_threshold {
-      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.watched_group_changes.name}\""
+      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.watched_group_changes.name}\" AND resource.type=\"audited_resource\""
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "0s"
