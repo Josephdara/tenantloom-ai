@@ -70,7 +70,7 @@ Every flow below is specified before the prod perimeter is enforced:
 | Flow | Identity and permission | Network and perimeter |
 |---|---|---|
 | Caller to Cloud Run | Caller holds `roles/run.invoker` on that team's service; `run.managed.requireInvokerIam` keeps the IAM check on | Through the external Application Load Balancer in prod; services accept only internal and load balancer traffic (`run.allowedIngress`); unauthenticated calls return 403 |
-| Cloud Run to Gemini | The team's runtime service account with the custom Gemini Invoker role | Direct VPC egress with all traffic routed through the VPC (`run.allowedVPCEgress`) on a subnet with Private Google Access; DNS sends Google API names to `restricted.googleapis.com`; the `us` multi-region endpoint (`aiplatform.us.rep.googleapis.com`), because the catalog models are not served on the `us-east4` regional endpoint; whether the restricted range and the perimeter cover it is checked with the prod tests |
+| Cloud Run to Gemini | The team's runtime service account with the custom Gemini Invoker role | Direct VPC egress with all traffic routed through the VPC (`run.allowedVPCEgress`) on a subnet with Private Google Access; DNS sends Google API names to `restricted.googleapis.com`; the `us` multi-region endpoint (`aiplatform.us.rep.googleapis.com`), because the catalog models are not served on the `us-east4` regional endpoint; the restricted range does not serve `*.rep.googleapis.com` endpoints, so this path needs a Private Service Connect endpoint in the VPC, not yet built |
 | Prod workload egress | Any prod Cloud Run service | A deny-all egress firewall rule allows only the restricted Google API range, and the perimeter's VPC accessible services are limited to its restricted services, so the internet and every Google API outside that list are unreachable |
 | Eval and canary jobs to prod | `sa-<id>-eval`, running as a Cloud Run job in nonprod, with `run.invoker` on the team's prod service only | Through the prod load balancer like any other caller; dataset reads and writes to the team's `eval_runs` table stay in nonprod |
 | Prod to shared data | Folder log sink writer identity | Egress rule to the audit dataset in nonprod only |
@@ -264,7 +264,7 @@ Admin Activity audit logs are always on. Data Access audit logs are enabled on t
 | `auditors` | Audit dataset and Model Armor log buckets | Read audit and prompt logs | Write or change anything |
 | `ai-governance` | Platform builds in nonprod and the Cloud Build log view | Approve platform plan and apply builds, and read their logs | Read other logs, start builds, or apply changes |
 
-Terraform manages no Cloud Identity groups. Administrators create and maintain every group, including `ai-governance` and `auditors`, in the Admin console, and a membership change to either raises an alert (ADR-004).
+Terraform manages no Cloud Identity groups. Administrators create and maintain every group, including `ai-governance` and `auditors`, in the Admin console, and a membership change to either raises an alert (ADR-004). The alert notifies the `ai-governance` address, which must receive mail for the alert to reach anyone.
 
 Project IAM Admin lets `sa-terraform` grant itself any role in the three projects, so its role list records intent rather than a hard limit. The controls are approval on every apply, CODEOWNERS, and the monthly access review, which flags any grant to `sa-terraform` that ADR-004 does not list.
 
@@ -275,7 +275,7 @@ Project IAM Admin lets `sa-terraform` grant itself any role in the three project
 | `<id>-prod-read` | `roles/run.viewer` and log view access on the team's prod services, scoped with IAM conditions | Up to 2 hours | A team release approver |
 | `platform-prod-admin` | `roles/run.developer`, `roles/run.invoker`, `roles/aiplatform.user`, and `roles/logging.viewAccessor` on `jd-aip-prod`, none of which can change IAM | Up to 1 hour | `ai-governance`, with a justification; every use is reviewed afterward because it sees every team's prod resources |
 
-PAM grants IAM roles only. Perimeter ingress rules for the eligible groups provide the network path, and IAM refuses access whenever no grant is active (ADR-007).
+PAM grants IAM roles only. Perimeter ingress rules for the eligible groups provide the network path, and IAM refuses access whenever no grant is active (ADR-007). Approvers can approve or deny a request but cannot yet end an active grant early; giving `ai-governance` that permission is open work.
 
 A monthly query over a Cloud Asset Inventory export flags user-level bindings, Owner or Editor grants, and any cross-team binding.
 
