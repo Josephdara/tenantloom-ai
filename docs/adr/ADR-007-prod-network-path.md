@@ -1,6 +1,6 @@
 # ADR-007: Prod network path under VPC Service Controls
 
-**Status:** Accepted. The prod network, load balancer, temporary probe, and dry-run perimeter are implemented; lab checks 4, 5, 13, 14, and 16 are not yet verified.
+**Status:** Accepted. The prod network, load balancer, temporary probe, and dry-run perimeter are implemented. Lab checks 4, 5, and 16 pass with the perimeter in dry run; their enforced form, and lab checks 13 and 14, are not yet verified.
 
 ## Context
 
@@ -25,7 +25,7 @@ Prod services still need callers from outside the perimeter: team clients, and t
    - The subnet has Private Google Access enabled.
    - A deny-all egress firewall rule is set after the default priority. A higher-priority rule allows TCP 443 to the restricted Google API range.
    - A Cloud DNS response policy resolves `*.googleapis.com` and `*.run.app` to `restricted.googleapis.com`.
-   - Gemini is reached through the `us-east4` regional endpoint on that range.
+   - Gemini is reached through the `us` multi-region endpoint, because the catalog models are not served on `us-east4`. The restricted range does not serve that endpoint, so it needs a Private Service Connect endpoint, which is not yet built.
 3. **The network reaches only the perimeter's services.** The perimeter's VPC accessible services are set to its restricted services. Every Google API a prod workload calls must therefore be on the restricted list.
 4. **Management and PAM ingress.** Ingress rules admit:
    - `sa-terraform` for all restricted services, `sa-terraform-plan` for all methods, since IAM keeps it read-only, and the break-glass account for recovery (ADR-004).
@@ -66,6 +66,7 @@ Those results predate this design and are not yet captured as published evidence
 - **Eval and canary traffic go through the load balancer.** Canary requests aimed at the candidate revision need a route on it (ADR-005).
 - **Some regional endpoints need extra plumbing.** A Google API whose regional endpoint is not served by the restricted range needs a Private Service Connect endpoint in the VPC, with its own DNS record and a firewall rule allowing its internal address. The earlier spike used one.
 - **The dry run shows what enforcement would block.** Violations from the probe, the job, Terraform, and the folder sink appear in prod's audit logs before any rule is relied on.
+- **Load balancer callers need a perimeter rule before enforcement.** In dry run, requests through the load balancer from callers not named in an ingress rule log a `run.googleapis.com/HttpIngress` violation. Under enforcement the perimeter would refuse them before IAM is checked, so the enforcement step adds an ingress rule or access level for load balancer traffic.
 - **Management depends on ingress rules.** A missing or too narrow management rule blocks plans, applies, and drift checks against prod even when IAM allows them.
 
 ## Alternatives considered

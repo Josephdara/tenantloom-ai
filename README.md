@@ -9,7 +9,7 @@ I use it to show how an organization can offer models to several teams in a few 
 | Area | State |
 |---|---|
 | Foundation: three projects, state bucket, CI identities, GitHub connection, plan and apply triggers, platform budget | Implemented and partly verified. Results and open items are in [foundation evidence](docs/evidence/foundation.md). |
-| Governance and access: model catalog allowlists, organization policies, identity matrix, PAM, audit sink, Model Armor, prod network, perimeter in dry run | Implemented; verification in progress. Results are in [governance evidence](docs/evidence/governance.md). |
+| Governance and access: model catalog allowlists, organization policies, identity matrix, PAM, audit sink, Model Armor, prod network, perimeter in dry run | Implemented and verified, with the perimeter in dry run. Results and open items are in [governance evidence](docs/evidence/governance.md). |
 | Evaluation: versioned datasets, harness, evaluation records, catalog comparison | Planned |
 | Tenant module and delivery: starter template, Cloud Deploy pipeline, gates, attestation, canary, rollback | Planned |
 | Second team, operations, and documentation | Planned |
