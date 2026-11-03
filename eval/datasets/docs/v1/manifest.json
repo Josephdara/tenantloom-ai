@@ -1,0 +1,17 @@
+{
+  "task": "docs",
+  "version": "v1",
+  "item_count": 80,
+  "splits": {
+    "development": {
+      "items": 50,
+      "sha256": "c94d7c73816eebfd3fb8643e58c0d58e425a323a4e9ee8265da3fee4c17145ed",
+      "md5_base64": "fpxnkCBv/DJLOibv4rB7Zw=="
+    },
+    "heldout": {
+      "items": 30,
+      "sha256": "e9bee498242e90f5078f627364f3fb0a20e44fa41663b835d146f979c634ebc2",
+      "md5_base64": "05Xc4Ic3fFq5//rlUmV5tQ=="
+    }
+  }
+}
