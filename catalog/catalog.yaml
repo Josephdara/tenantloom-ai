@@ -1,0 +1,20 @@
+models:
+  - id: gemini-3.8-flash
+    publisher: google
+    status: approved
+    deployment_pattern: publisher
+    data_classifications: [public, internal, confidential]
+    environments: [sandbox, nonprod, prod]
+    eval_report: null
+    approver: ai-governance
+    retirement_date: null
+
+  - id: gemini-4-argon
+    publisher: google
+    status: candidate
+    deployment_pattern: publisher
+    data_classifications: [public, internal]
+    environments: [sandbox]
+    eval_report: null
+    approver: null
+    retirement_date: null

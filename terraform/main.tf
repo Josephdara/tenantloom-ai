@@ -69,8 +69,22 @@ module "projects" {
 module "governance" {
   source = "./modules/governance"
 
-  org_id = var.org_id
-  folder = google_folder.ai_platform.name
+  org_id                = var.org_id
+  folder                = google_folder.ai_platform.name
+  project_ids           = module.projects.project_ids
+  project_numbers       = module.projects.project_numbers
+  platform_admins_group = var.platform_admins_group
+}
+
+module "audit" {
+  source = "./modules/audit"
+
+  folder           = google_folder.ai_platform.name
+  project_ids      = module.projects.project_ids
+  region           = var.region
+  labels           = local.labels
+  governance_group = var.governance_group
+  auditors_group   = var.auditors_group
 }
 
 module "perimeter" {

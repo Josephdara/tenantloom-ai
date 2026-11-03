@@ -1,9 +1,24 @@
 locals {
   apis = {
-    sandbox = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
-    prod    = ["cloudresourcemanager.googleapis.com", "iam.googleapis.com", "serviceusage.googleapis.com"]
+    sandbox = [
+      "aiplatform.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "iam.googleapis.com",
+      "logging.googleapis.com",
+      "modelarmor.googleapis.com",
+      "serviceusage.googleapis.com",
+    ]
+    prod = [
+      "aiplatform.googleapis.com",
+      "cloudresourcemanager.googleapis.com",
+      "iam.googleapis.com",
+      "logging.googleapis.com",
+      "modelarmor.googleapis.com",
+      "serviceusage.googleapis.com",
+    ]
     nonprod = [
       "accesscontextmanager.googleapis.com",
+      "aiplatform.googleapis.com",
       "bigquery.googleapis.com",
       "billingbudgets.googleapis.com",
       "cloudbilling.googleapis.com",
@@ -12,6 +27,7 @@ locals {
       "iam.googleapis.com",
       "iamcredentials.googleapis.com",
       "logging.googleapis.com",
+      "modelarmor.googleapis.com",
       "monitoring.googleapis.com",
       "orgpolicy.googleapis.com",
       "secretmanager.googleapis.com",

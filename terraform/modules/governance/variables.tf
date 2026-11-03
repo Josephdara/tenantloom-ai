@@ -7,3 +7,18 @@ variable "org_id" {
   type        = string
   description = "Numeric organization ID."
 }
+
+variable "project_ids" {
+  type        = map(string)
+  description = "Platform project IDs keyed by environment."
+}
+
+variable "project_numbers" {
+  type        = map(string)
+  description = "Platform project numbers keyed by environment."
+}
+
+variable "platform_admins_group" {
+  type        = string
+  description = "Email of the group that may impersonate the model test identity."
+}

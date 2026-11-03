@@ -173,7 +173,7 @@ Time to provision is measured from approval of the saved plan to passing readine
 
 `vertexai.allowedModels` applies to every principal in a project, so teams sharing a project share one allowlist. The first version uses that shared allowlist as the runtime boundary and enforces each team's model choice in CI: a release configuration that names a model outside the team's entitlements fails before build.
 
-Because this is a delivery-time control, a team could still call another allowlisted model at runtime. ADR-001 will record this as an accepted risk, with a platform-owned model gateway as the upgrade path if per-team runtime limits become a requirement.
+Because this is a delivery-time control, a team could still call another allowlisted model at runtime. ADR-001 records this as an accepted risk, with a platform-owned model gateway as the upgrade path if per-team runtime limits become a requirement.
 
 Model access tests:
 
@@ -401,13 +401,13 @@ tenantloom-ai/
 
 ## 14. Planned architecture decision records
 
-ADRs live in `docs/adr/`. ADR-002, ADR-004, ADR-005, and ADR-007 are written; the others are planned.
+ADRs live in `docs/adr/`. ADR-006 is planned; the others are written.
 
 | ADR | Decision |
 |---|---|
-| ADR-001 | Model access boundary: shared project allowlist at runtime, per-team entitlement enforced in CI |
+| [ADR-001](docs/adr/ADR-001-model-access-boundary.md) | Model access boundary: shared project allowlist at runtime, per-team entitlement enforced in CI |
 | [ADR-002](docs/adr/ADR-002-three-project-layout.md) | Three-project layout: sandbox, nonprod with delivery tooling and state, and prod |
-| ADR-003 | Team isolation in shared projects, including team IDs |
+| [ADR-003](docs/adr/ADR-003-team-isolation.md) | Team isolation in shared projects, including team IDs |
 | [ADR-004](docs/adr/ADR-004-state-and-ci-ownership.md) | State and CI ownership: `sa-terraform` scope, read-only pull request plans, approval before every plan and apply, protected state bucket, no Terraform-managed groups |
 | [ADR-005](docs/adr/ADR-005-attested-promotion.md) | Attested promotion with Cloud Deploy: attestor and eval jobs in nonprod, enforced Binary Authorization, per-team eval tables, candidate-targeted canary |
 | ADR-006 | Deployment patterns: publisher, MaaS, and self-deployed |

@@ -60,6 +60,7 @@ locals {
   # Read access for planning, without job creation, log-entry reads, or secret access.
   plan_reader_permissions = [
     "bigquery.datasets.get",
+    "bigquery.datasets.getIamPolicy",
     "cloudbuild.builds.get",
     "cloudbuild.builds.list",
     "iam.roles.get",
@@ -67,8 +68,13 @@ locals {
     "iam.serviceAccounts.get",
     "iam.serviceAccounts.getIamPolicy",
     "iam.serviceAccounts.list",
+    "logging.buckets.get",
+    "logging.exclusions.get",
+    "logging.logMetrics.get",
+    "logging.sinks.get",
     "logging.views.get",
     "logging.views.getIamPolicy",
+    "monitoring.alertPolicies.get",
     "monitoring.notificationChannels.get",
     "monitoring.notificationChannels.list",
     "resourcemanager.projects.get",
@@ -153,6 +159,13 @@ resource "google_folder_iam_member" "terraform_plan" {
 
   folder = var.folder
   role   = each.value
+  member = google_service_account.terraform_plan.member
+}
+
+# Reads the folder audit sink; the organization role is created outside Terraform because no predefined role reads sinks without log entries.
+resource "google_folder_iam_member" "terraform_plan_log_config_reader" {
+  folder = var.folder
+  role   = "organizations/${var.org_id}/roles/terraformLogConfigReader"
   member = google_service_account.terraform_plan.member
 }
 

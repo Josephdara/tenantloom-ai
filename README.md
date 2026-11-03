@@ -34,7 +34,9 @@ jd-aip-prod      prod workloads behind a service perimeter and load balancer, CM
 ## Repository layout
 
 ```text
-terraform/                  platform root and its modules (projects, state, CI identities, Cloud Build, billing)
+terraform/                  platform root and its modules (projects, state, CI identities, Cloud Build, billing,
+                            governance, audit, perimeter)
+catalog/                    approved models; Terraform generates each project's model allowlist from it
 cloudbuild/                 pull request plan, merge plan, and apply build configs
 .github/CODEOWNERS          code owner for every path
 docs/adr/                   architecture decision records
@@ -43,7 +45,7 @@ docs/evidence/              verification results
 architecture.md             target architecture
 ```
 
-Planned later: `terraform/modules/tenant/`, `tenants/`, `catalog/`, `verification/`, `templates/starter-service/`, and `eval/`.
+Planned later: `terraform/modules/tenant/`, `tenants/`, `verification/`, `templates/starter-service/`, and `eval/`.
 
 ## Prerequisites
 
@@ -64,10 +66,14 @@ Planned later: `terraform/modules/tenant/`, `tenants/`, `catalog/`, `verificatio
 | Project ID prefix | `jd-aip-` | Same, as `project_prefix` |
 | Region | `us-east4` | Same, as `region` |
 | Approver group | `ai-governance@` your domain | Same, as `governance_group` |
+| Platform administrator group | `ai-platform-admins@` your domain | Same, as `platform_admins_group` |
+| Auditor group | `auditors@` your domain | Same, as `auditors_group` |
+| Access policy | Your organization's existing access policy ID | Same, as `access_policy_id` |
 | Budget alert address | Your own | Same, as `budget_alert_email` |
 | Monthly platform budget | 100 in the billing account's currency | `budget_amount` in `terraform/variables.tf` |
 | GitHub repository URI and code owner | Your own | `platform_repo_uri`, and `.github/CODEOWNERS` |
-| Prod load balancer DNS name | A hostname under your domain | Set when the prod network is built |
+| Prod load balancer DNS name | A hostname under your domain | Same, as `prod_hostname` |
+| Approved models | `gemini-3.8-flash`, with `gemini-4-argon` as a sandbox candidate | `catalog/catalog.yaml` |
 
 Values that identify your organization or people stay out of the repository. CI reads them from the configuration object at build time.
 
