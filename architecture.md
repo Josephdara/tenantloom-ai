@@ -198,19 +198,26 @@ New models enter the catalog after an evaluation in sandbox, a pull request with
 
 ### Organization policy baseline
 
-| Constraint | Effect |
-|---|---|
-| `iam.disableServiceAccountKeyCreation` | No long-lived keys |
-| `iam.allowedPolicyMemberDomains` | Only `josephdara.com` identities receive access, which also blocks `allUsers` |
-| `run.managed.requireInvokerIam` | Every Cloud Run service keeps the IAM invoker check |
-| `iam.automaticIamGrantsForDefaultServiceAccounts` | Default service accounts do not receive Editor |
-| `gcp.resourceLocations` | Resources stay in US locations |
-| `storage.uniformBucketLevelAccess`, `storage.publicAccessPrevention` | IAM-only, never-public buckets |
-| `vertexai.allowedModels` | Per-project model allowlist generated from the catalog |
-| `run.allowedBinaryAuthorizationPolicies` on `jd-aip-prod` | Every prod Cloud Run service must use the project's Binary Authorization policy, so a deployer cannot turn enforcement off |
-| `run.allowedIngress` on `jd-aip-prod` | Prod services accept only internal and load balancer traffic |
-| `run.allowedVPCEgress` on `jd-aip-prod` | Prod services send all outbound traffic through the VPC |
-| Custom breakglass constraint on `jd-aip-prod` | Rejects any service create or update that requests Binary Authorization breakglass |
+Platform state manages every policy below. Policies marked "In place" are imported from the existing organization baseline and protected from deletion through Terraform; the others are planned.
+
+| Constraint | Scope | Effect | Status |
+|---|---|---|---|
+| `iam.managed.disableServiceAccountKeyCreation` | Organization | No long-lived keys | In place |
+| `iam.disableServiceAccountKeyUpload` | Organization | No uploaded service account keys | In place |
+| `iam.allowedPolicyMemberDomains` | Organization | Only the organization's own identities receive access, which also blocks `allUsers` | In place |
+| `essentialcontacts.managed.allowedContactDomains` | Organization | Essential contacts must use the organization's domain | In place |
+| `iam.automaticIamGrantsForDefaultServiceAccounts` | Organization | Default service accounts do not receive Editor | In place |
+| `run.managed.requireInvokerIam` | Organization | Every Cloud Run service keeps the IAM invoker check | In place |
+| `gcp.resourceLocations` | Organization | Resources stay in US locations | In place |
+| `storage.uniformBucketLevelAccess`, `storage.publicAccessPrevention` | Organization | IAM-only, never-public buckets | In place |
+| `compute.vmExternalIpAccess` | Organization | No VM gets an external IP address | In place |
+| `compute.managed.restrictProtocolForwardingCreationForTypes` | Organization | Only internal protocol forwarding | In place |
+| `vertexai.allowedModels` | `ai-platform` folder | Denies every model by default | In place |
+| `vertexai.allowedModels` | Each project | Model allowlist generated from the catalog, replacing the folder default | Planned |
+| `run.allowedBinaryAuthorizationPolicies` | `jd-aip-prod` | Every prod Cloud Run service must use the project's Binary Authorization policy, so a deployer cannot turn enforcement off | Planned |
+| `run.allowedIngress` | `jd-aip-prod` | Prod services accept only internal and load balancer traffic | Planned |
+| `run.allowedVPCEgress` | `jd-aip-prod` | Prod services send all outbound traffic through the VPC | Planned |
+| Custom breakglass constraint | `jd-aip-prod` | Rejects any service create or update that requests Binary Authorization breakglass | Planned |
 
 ### Data lifecycle
 

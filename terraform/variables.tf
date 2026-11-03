@@ -50,6 +50,26 @@ variable "budget_alert_email" {
   description = "Address that receives platform budget alerts."
 }
 
+variable "platform_admins_group" {
+  type        = string
+  description = "Email of the group eligible for temporary prod administration."
+}
+
+variable "auditors_group" {
+  type        = string
+  description = "Email of the group that reads audit and prompt logs."
+}
+
+variable "access_policy_id" {
+  type        = string
+  description = "Numeric ID of the existing organization access policy."
+}
+
+variable "prod_hostname" {
+  type        = string
+  description = "DNS name served by the prod load balancer."
+}
+
 variable "github_connection_name" {
   type    = string
   default = "github"

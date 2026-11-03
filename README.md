@@ -51,7 +51,7 @@ Planned later: `terraform/modules/tenant/`, `tenants/`, `catalog/`, `verificatio
 - A break-glass administrator account with Organization Administrator and Billing Account Administrator. Expect it to re-authenticate often if your organization enforces session limits.
 - Cloud Identity groups created by an administrator in the Admin console. Terraform manages no groups.
   - `ai-governance`, holding at least one approver account that is not the account that writes pull requests.
-  - `auditors` and `platform-admins`, before the governance work.
+  - `auditors` and `ai-platform-admins`, before the governance work.
   - For each team, `<id>-developers` and `<id>-release-approvers`, before the team's onboarding pull request.
 - A GitHub repository holding this code, with the Google Cloud Build GitHub App installed on it and a branch ruleset on `main`.
 - Terraform 1.16.4, the Google Cloud CLI, and the GitHub CLI.
