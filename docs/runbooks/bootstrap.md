@@ -173,6 +173,16 @@ rm -f terraform/terraform.tfstate terraform/terraform.tfstate.backup terraform/*
 
 **Expected:** three `removed owner` lines and one etag. Afterwards `BREAKGLASS` can no longer read the state bucket or plan locally, which is intended.
 
+Then give `BREAKGLASS` read-only Viewer on the folder, so it can inspect all three projects. Viewer cannot approve builds, change IAM, or read objects, so state stays out of reach.
+
+```bash
+gcloud resource-manager folders add-iam-policy-binding FOLDER_ID \
+  --member="user:BREAKGLASS" --role="roles/viewer" \
+  --condition=None --quiet --format="value(etag)"
+```
+
+**Expected:** one etag.
+
 ## 10. Protect `main`
 
 Create or update a branch ruleset on `main`. The bypass lets a single maintainer merge their own pull requests through `gh pr merge --admin`, and GitHub records each bypass. Remove the bypass actor if a second reviewer joins.
@@ -213,6 +223,7 @@ Use your nonprod project ID in the check name. `10529` is the Google Cloud Build
 | Cloud Identity groups and their membership | Admin console |
 | GitHub connection creation, authorization, and app installation | gcloud and browser, step 5 |
 | Removing the creator's Owner role and the temporary role | gcloud, step 9 |
+| Viewer on the `ai-platform` folder for the break-glass account | gcloud, step 9 |
 | Branch ruleset | GitHub API, step 10 |
 | Private CI inputs | Configuration object in the state bucket, below |
 | Cloud Billing export to BigQuery | Billing console, below. Not yet enabled in this deployment. |
