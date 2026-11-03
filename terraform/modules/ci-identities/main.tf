@@ -25,6 +25,7 @@ locals {
     "roles/cloudkms.admin",
     "roles/cloudquotas.admin",
     "roles/cloudscheduler.admin",
+    "roles/compute.loadBalancerAdmin",
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",
     "roles/containeranalysis.admin",

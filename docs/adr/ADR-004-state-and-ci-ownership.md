@@ -53,7 +53,8 @@ Five questions follow from that:
    | `ai-platform` folder | `roles/privilegedaccessmanager.admin` | PAM entitlements |
    | `ai-platform` folder | `roles/run.developer` | Team eval jobs |
    | `ai-platform` folder | `roles/cloudscheduler.admin` | Daily canary and drift schedules |
-   | `ai-platform` folder | `roles/compute.networkAdmin`, `roles/compute.securityAdmin` | VPC, load balancer and serverless network endpoint groups; firewall rules and certificates |
+   | `ai-platform` folder | `roles/compute.networkAdmin`, `roles/compute.securityAdmin` | VPC and load balancer components; firewall rules and certificates |
+   | `ai-platform` folder | `roles/compute.loadBalancerAdmin` | Serverless network endpoint groups, which Compute Network Admin cannot create |
    | `ai-platform` folder | `roles/dns.admin` | DNS response policy |
    | `ai-platform` folder | `roles/cloudquotas.admin` | Agent Platform quota limits |
 
