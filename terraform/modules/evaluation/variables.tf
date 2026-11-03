@@ -30,3 +30,23 @@ variable "governance_group" {
   type        = string
   description = "Email of the group that reviews evaluation results."
 }
+
+variable "project_number" {
+  type        = string
+  description = "Sandbox project number, used to name its Cloud Run service agent."
+}
+
+variable "harness_image" {
+  type        = string
+  description = "Evaluation harness image, pinned by digest."
+
+  validation {
+    condition     = can(regex("@sha256:[0-9a-f]{64}$", var.harness_image))
+    error_message = "The harness image must be pinned by sha256 digest."
+  }
+}
+
+variable "artifact_repository" {
+  type        = string
+  description = "Resource ID of the platform Artifact Registry repository."
+}
