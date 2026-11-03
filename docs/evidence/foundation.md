@@ -19,7 +19,7 @@ Build IDs refer to Cloud Build builds in the nonprod project, region `us-east4`.
 | Approvers can read the plans they approve | | Verified |
 | No person holds standing access to state | | Verified, with accepted exceptions |
 | Platform budget exists | | Verified from the apply log only |
-| A stale saved plan is rejected | | Pending |
+| A stale saved plan is rejected | | Verified |
 | Billing export reaches the dataset | | Pending: not enabled |
 | Cloud Run job creation is denied to pull request builds | | Pending: Cloud Run API not yet enabled |
 | Groups reader | 11 | Not applicable: Terraform manages no groups |
@@ -73,6 +73,12 @@ Build IDs refer to Cloud Build builds in the nonprod project, region `us-east4`.
 - **Observed:** merge plans `d9b763a3` and `6922b64a` and applies `74781d60` and `1be0244c` were all approved by a member of `ai-governance`. The break-glass account holds no role in the nonprod project.
 - **Significance:** applies run only after a Google identity outside CI approves them, both before the plan runs and before it is applied.
 
+### Stale saved plan rejected
+
+- **Checked:** two merges in a row. The first merge's plan (build `9ea8fad5`) was approved and saved, and its apply was left waiting for approval. The second merge's plan (build `9a5cd8f3`), which also contained the first change, was approved and applied (build `15a31437`). The first apply was then approved (build `882af82c`).
+- **Observed:** build `882af82c` failed with `Error: Saved plan is stale` and the message that the state was changed by another operation after the plan was created. Nothing from the first change was lost, because the second apply included it.
+- **Significance:** an approver cannot apply a plan that no longer matches state, even when its approval was requested before another change landed.
+
 ### Approvers can read plans
 
 - **Checked:** an `ai-governance` member opening Logs Explorer with the `cloudbuild` log view.
@@ -93,7 +99,6 @@ Build IDs refer to Cloud Build builds in the nonprod project, region `us-east4`.
 
 ## Pending
 
-- **Stale saved plan rejected.** To be recorded with the next state-changing merges.
 - **Billing export.** The `billing_export` dataset exists, but the export is not enabled.
 - **Cloud Run job denial for pull request builds.** To be tested once the Cloud Run API is enabled.
 - **Membership alert for `ai-governance` and `auditors` (lab check 2).** Planned with the governance work.

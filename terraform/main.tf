@@ -22,6 +22,34 @@ import {
   id       = "folders/${var.folder_id} ${each.key}"
 }
 
+import {
+  for_each = toset([
+    "compute.managed.restrictProtocolForwardingCreationForTypes",
+    "compute.vmExternalIpAccess",
+    "essentialcontacts.managed.allowedContactDomains",
+    "gcp.resourceLocations",
+    "iam.allowedPolicyMemberDomains",
+    "iam.automaticIamGrantsForDefaultServiceAccounts",
+    "iam.disableServiceAccountKeyUpload",
+    "iam.managed.disableServiceAccountKeyCreation",
+    "run.managed.requireInvokerIam",
+    "storage.publicAccessPrevention",
+    "storage.uniformBucketLevelAccess",
+  ])
+  to = module.governance.google_org_policy_policy.organization[each.key]
+  id = "organizations/${var.org_id}/policies/${each.key}"
+}
+
+import {
+  to = module.governance.google_org_policy_policy.folder_models
+  id = "folders/${var.folder_id}/policies/vertexai.allowedModels"
+}
+
+import {
+  to = module.perimeter.google_access_context_manager_access_policy.this
+  id = var.access_policy_id
+}
+
 # Existing ai-platform folder, imported so platform state owns it.
 resource "google_folder" "ai_platform" {
   display_name        = "ai-platform"
@@ -41,7 +69,14 @@ module "projects" {
 module "governance" {
   source = "./modules/governance"
 
+  org_id = var.org_id
   folder = google_folder.ai_platform.name
+}
+
+module "perimeter" {
+  source = "./modules/perimeter"
+
+  org_id = var.org_id
 }
 
 module "ci_identities" {
@@ -75,6 +110,10 @@ module "state" {
     github_app_installation_id        = var.github_app_installation_id
     github_oauth_token_secret_version = var.github_oauth_token_secret_version
     budget_alert_email                = var.budget_alert_email
+    access_policy_id                  = var.access_policy_id
+    prod_hostname                     = var.prod_hostname
+    platform_admins_group             = var.platform_admins_group
+    auditors_group                    = var.auditors_group
   }
 }
 
