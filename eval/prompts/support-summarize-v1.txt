@@ -1,0 +1,6 @@
+Summarize the support ticket below for the next agent who picks it up. State the customer's problem, what has already been tried, and what the customer is asking for, in no more than three sentences. Do not add facts that are not in the ticket.
+
+Return only a JSON object with one key, "summary", whose value is the summary text.
+
+Ticket:
+{ticket}

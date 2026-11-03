@@ -25,3 +25,13 @@ output "prod_lb_address" {
 output "github_connection" {
   value = module.cloudbuild.connection
 }
+
+output "evaluation" {
+  value = {
+    catalog_eval_service_account = module.evaluation.catalog_eval_service_account
+    model_deploy_service_account = module.evaluation.model_deploy_service_account
+    buckets                      = module.evaluation.buckets
+    eval_runs_table              = module.evaluation.eval_runs_table
+    platform_repository          = module.cloudbuild.platform_repository
+  }
+}

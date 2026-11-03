@@ -1,0 +1,9 @@
+Extract these fields from the invoice below and return only a JSON object with exactly these keys:
+- invoice_number: the invoice identifier, copied exactly
+- vendor_name: the issuing company's name, copied exactly
+- invoice_date: the invoice date in YYYY-MM-DD format
+- currency: the three-letter ISO 4217 currency code
+- total_amount: the amount due as digits with two decimal places and no currency symbol or separators, for example 1234.50
+
+Invoice:
+{document}

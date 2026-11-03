@@ -1,0 +1,63 @@
+{
+  "docs": {
+    "prompt": "prompts/docs-extract-v1.txt",
+    "prompt_version": "docs-extract-v1",
+    "input_field": "document",
+    "label_field": "labels",
+    "output_schema": "schema/docs_output.json",
+    "fields": [
+      "invoice_number",
+      "vendor_name",
+      "invoice_date",
+      "currency",
+      "total_amount"
+    ],
+    "thresholds": {
+      "field_accuracy": {
+        "comparison": "min",
+        "value": 0.9,
+        "definition": "Share of extracted fields that exactly match the label, scored by the evaluation service"
+      },
+      "schema_validity": {
+        "comparison": "min",
+        "value": 1.0,
+        "definition": "Share of outputs that parse as JSON and match the output schema"
+      },
+      "latency_p95_seconds": {
+        "comparison": "max",
+        "value": 4.0,
+        "definition": "95th percentile end-to-end model call latency, nearest rank"
+      }
+    }
+  },
+  "support": {
+    "prompt": "prompts/support-summarize-v1.txt",
+    "prompt_version": "support-summarize-v1",
+    "input_field": "ticket",
+    "label_field": "reference",
+    "output_schema": "schema/support_output.json",
+    "rubric": "rubrics/support-faithfulness-v1.txt",
+    "rubric_version": "support-faithfulness-v1",
+    "judge": {
+      "model": "gemini-3.8-flash",
+      "location": "global"
+    },
+    "thresholds": {
+      "rubric_mean": {
+        "comparison": "min",
+        "value": 4.0,
+        "definition": "Mean 1 to 5 rubric score from the judge model"
+      },
+      "schema_validity": {
+        "comparison": "min",
+        "value": 1.0,
+        "definition": "Share of outputs that parse as JSON and match the output schema"
+      },
+      "latency_p95_seconds": {
+        "comparison": "max",
+        "value": 4.0,
+        "definition": "95th percentile end-to-end model call latency, nearest rank"
+      }
+    }
+  }
+}

@@ -18,3 +18,24 @@ models:
     eval_report: null
     approver: null
     retirement_date: null
+
+  - id: gemma-4-26b-a4b-it-maas
+    publisher: google
+    status: candidate
+    deployment_pattern: maas
+    data_classifications: [public, internal]
+    environments: [sandbox]
+    eval_report: null
+    approver: null
+    retirement_date: null
+
+  - id: gemma3n
+    variant: gemma-3n-e4b-it
+    publisher: google
+    status: candidate
+    deployment_pattern: self-deployed
+    data_classifications: [public, internal]
+    environments: [sandbox]
+    eval_report: null
+    approver: null
+    retirement_date: null

@@ -2,11 +2,15 @@ locals {
   apis = {
     sandbox = [
       "aiplatform.googleapis.com",
+      "bigquery.googleapis.com",
       "cloudresourcemanager.googleapis.com",
+      "cloudscheduler.googleapis.com",
       "iam.googleapis.com",
       "logging.googleapis.com",
       "modelarmor.googleapis.com",
+      "run.googleapis.com",
       "serviceusage.googleapis.com",
+      "storage.googleapis.com",
     ]
     prod = [
       "aiplatform.googleapis.com",
@@ -24,6 +28,7 @@ locals {
     nonprod = [
       "accesscontextmanager.googleapis.com",
       "aiplatform.googleapis.com",
+      "artifactregistry.googleapis.com",
       "bigquery.googleapis.com",
       "billingbudgets.googleapis.com",
       "cloudbilling.googleapis.com",
