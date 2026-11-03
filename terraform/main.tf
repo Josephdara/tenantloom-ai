@@ -3,6 +3,9 @@ locals {
     component  = "platform"
     managed-by = "terraform"
   }
+
+  # Built by the platform-eval-image trigger; changing it is a reviewed pull request.
+  harness_image = "us-east4-docker.pkg.dev/jd-aip-nonprod/platform/eval-harness@sha256:54eb1c9b4e395965dcce553a479c1c96f76228e70e0a91b82307ab0c5e13d089"
 }
 
 import {
@@ -81,7 +84,10 @@ module "evaluation" {
   source = "./modules/evaluation"
 
   project_id            = module.projects.project_ids["sandbox"]
+  project_number        = module.projects.project_numbers["sandbox"]
   nonprod_project_id    = module.projects.project_ids["nonprod"]
+  harness_image         = local.harness_image
+  artifact_repository   = module.cloudbuild.platform_repository
   region                = var.region
   labels                = local.labels
   gemini_invoker_role   = module.governance.gemini_invoker_roles["sandbox"]
