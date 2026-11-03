@@ -22,3 +22,8 @@ variable "platform_admins_group" {
   type        = string
   description = "Email of the group that may impersonate the model test identity."
 }
+
+variable "governance_group" {
+  type        = string
+  description = "Email of the group that approves temporary prod access."
+}

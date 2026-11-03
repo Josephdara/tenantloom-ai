@@ -14,6 +14,14 @@ output "terraform_plan_service_account" {
   value = module.ci_identities.terraform_plan.email
 }
 
+output "prod_name_servers" {
+  value = module.network.name_servers
+}
+
+output "prod_lb_address" {
+  value = module.network.lb_address
+}
+
 output "github_connection" {
   value = module.cloudbuild.connection
 }

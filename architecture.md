@@ -76,7 +76,7 @@ Every flow below is specified before the prod perimeter is enforced:
 | Prod to shared data | Folder log sink writer identity | Egress rule to the audit dataset in nonprod only |
 | Delivery to prod | Cloud Deploy runs prod rollouts as the target's execution account, `sa-<id>-deploy-prod`, with Cloud Run Developer and `actAs` on the team's prod runtime account | Ingress rule for the `deploy-prod` accounts; egress rule for prod's Cloud Run service agent to pull images from Artifact Registry in nonprod |
 | Prod admission | Binary Authorization in prod checks each image for the passed-test attestation from the attestor in nonprod | Binary Authorization and Container Analysis are not restricted services, so no rule is needed |
-| Terraform management | `sa-terraform` applies and `sa-terraform-plan` reads prod resources from Cloud Build in nonprod; the break-glass account recovers | Ingress rules: `sa-terraform` for all restricted services, `sa-terraform-plan` for read methods where a service supports method limits, and the break-glass account for recovery |
+| Terraform management | `sa-terraform` applies and `sa-terraform-plan` reads prod resources from Cloud Build in nonprod; the break-glass account recovers | Ingress rules: `sa-terraform` for all restricted services, `sa-terraform-plan` for all methods, since IAM keeps it read-only, and the break-glass account for recovery |
 | Prod access through PAM | Members of `<id>-developers` with an active `<id>-prod-read` grant, and platform admins with an active `platform-prod-admin` grant | Ingress rules for those groups, generated from `tenants/`: read methods on Cloud Run and Cloud Logging for each team's developers, and the restricted services for platform admins; IAM still refuses access without an active grant |
 
 The prod perimeter restricts Agent Platform, Cloud Run, Cloud Storage, BigQuery, Cloud KMS, Artifact Registry, and Cloud Logging, and its VPC accessible services are set to those restricted services. It stays in dry-run mode until every flow above runs with zero violations. Zero violations shows that permitted paths work, not that prohibited ones fail, so enforcement is accepted only after tests show that internet egress from a prod container, a call to a supported Google API outside the restricted list, a write to storage outside the perimeter, and an unauthenticated call all fail. ADR-005 records why eval jobs and the attestor stay in nonprod, and ADR-007 records the prod network path.
@@ -231,7 +231,7 @@ Each data type has a defined location, reader set, retention period, and key:
 | Audit logs | BigQuery audit dataset in nonprod | Auditors | 1 year | Google-managed |
 | Model Armor logs | Restricted log bucket in nonprod and prod | Auditors | 30 days | CMEK in prod |
 
-Bucket lifecycle rules, table expiration, and log bucket retention enforce these periods. Prod CMEK keys sit in one key ring in `jd-aip-prod`, and only the Storage, BigQuery, and Logging service agents for that project can use them. Keys stay active after a team offboards until its retained data expires.
+Bucket lifecycle rules, table expiration, and log bucket retention enforce these periods. Prod CMEK keys sit in one key ring in `jd-aip-prod`. The Logging key is in place and only the prod Logging service account can use it; Storage and BigQuery keys are added, with the same restriction, when prod first holds a bucket or dataset. Keys stay active after a team offboards until its retained data expires.
 
 Each team's eval account can write only its own `eval_runs` table. Row-level policies are not used for isolation, because they filter reads and do not restrict writes. Platform state owns the governance union view and generates it from the active teams in `tenants/`; each tenant state owns only its own table and grants.
 
@@ -273,7 +273,7 @@ Project IAM Admin lets `sa-terraform` grant itself any role in the three project
 | Entitlement | Grants | Duration | Approval |
 |---|---|---|---|
 | `<id>-prod-read` | `roles/run.viewer` and log view access on the team's prod services, scoped with IAM conditions | Up to 2 hours | A team release approver |
-| `platform-prod-admin` | `roles/run.admin` and `roles/aiplatform.admin` on `jd-aip-prod` | Up to 1 hour | `ai-governance`, with a justification; every use is reviewed afterward because it sees every team's prod resources |
+| `platform-prod-admin` | `roles/run.developer`, `roles/run.invoker`, `roles/aiplatform.user`, and `roles/logging.viewAccessor` on `jd-aip-prod`, none of which can change IAM | Up to 1 hour | `ai-governance`, with a justification; every use is reviewed afterward because it sees every team's prod resources |
 
 PAM grants IAM roles only. Perimeter ingress rules for the eligible groups provide the network path, and IAM refuses access whenever no grant is active (ADR-007).
 

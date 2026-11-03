@@ -79,6 +79,19 @@ resource "google_project_iam_member" "model_armor_sink_writer" {
   member  = google_logging_project_sink.model_armor["sandbox"].writer_identity
 }
 
+# Logs Writer for every sink that writes into nonprod from another resource, as Cloud Logging requires for all destinations.
+resource "google_project_iam_member" "cross_project_sink_log_writer" {
+  for_each = {
+    folder-audit        = google_logging_folder_sink.audit.writer_identity
+    sandbox-model-armor = google_logging_project_sink.model_armor["sandbox"].writer_identity
+    org-identity-audit  = "serviceAccount:service-org-${var.org_id}@gcp-sa-logging.iam.gserviceaccount.com"
+  }
+
+  project = local.nonprod
+  role    = "roles/logging.logWriter"
+  member  = each.value
+}
+
 # Keeps Model Armor logs out of the default bucket, where wider audiences can read them.
 resource "google_logging_project_exclusion" "model_armor" {
   for_each = local.model_armor_sources

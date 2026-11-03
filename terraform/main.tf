@@ -74,6 +74,7 @@ module "governance" {
   project_ids           = module.projects.project_ids
   project_numbers       = module.projects.project_numbers
   platform_admins_group = var.platform_admins_group
+  governance_group      = var.governance_group
 }
 
 module "audit" {
@@ -85,12 +86,44 @@ module "audit" {
   labels           = local.labels
   governance_group = var.governance_group
   auditors_group   = var.auditors_group
+  org_id           = var.org_id
+}
+
+module "network" {
+  source = "./modules/network"
+
+  project_id = module.projects.project_ids["prod"]
+  region     = var.region
+  hostname   = var.prod_hostname
+  labels     = local.labels
+}
+
+module "probe" {
+  source = "./modules/probe"
+
+  project_ids         = module.projects.project_ids
+  region              = var.region
+  labels              = local.labels
+  hostname            = var.prod_hostname
+  network             = module.network.network
+  subnetwork          = module.network.subnetwork
+  lb_address          = module.network.lb_address
+  certificate         = module.network.certificate
+  gemini_invoker_role = module.governance.gemini_invoker_roles["prod"]
+  model               = module.governance.prod_models[0]
 }
 
 module "perimeter" {
   source = "./modules/perimeter"
 
-  org_id = var.org_id
+  org_id                         = var.org_id
+  prod_project_number            = module.projects.project_numbers["prod"]
+  nonprod_project_number         = module.projects.project_numbers["nonprod"]
+  terraform_service_account      = module.ci_identities.terraform.email
+  terraform_plan_service_account = module.ci_identities.terraform_plan.email
+  breakglass_account             = var.breakglass_account
+  platform_admins_group          = var.platform_admins_group
+  audit_sink_writer              = module.audit.folder_sink_writer
 }
 
 module "ci_identities" {
@@ -128,6 +161,7 @@ module "state" {
     prod_hostname                     = var.prod_hostname
     platform_admins_group             = var.platform_admins_group
     auditors_group                    = var.auditors_group
+    breakglass_account                = var.breakglass_account
   }
 }
 
