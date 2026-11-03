@@ -31,11 +31,20 @@ resource "google_model_armor_floorsetting" "project" {
   }
 }
 
+# Agent Platform service agent, which Google otherwise creates only on first use.
+resource "google_project_service_identity" "aiplatform" {
+  provider = google-beta
+  for_each = var.project_ids
+
+  project = each.value
+  service = "aiplatform.googleapis.com"
+}
+
 # Lets the Agent Platform service agent call Model Armor for the floor settings.
 resource "google_project_iam_member" "aiplatform_agent_model_armor" {
-  for_each = var.project_numbers
+  for_each = var.project_ids
 
-  project = var.project_ids[each.key]
+  project = each.value
   role    = "roles/modelarmor.user"
-  member  = "serviceAccount:service-${each.value}@gcp-sa-aiplatform.iam.gserviceaccount.com"
+  member  = google_project_service_identity.aiplatform[each.key].member
 }
