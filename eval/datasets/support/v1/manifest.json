@@ -1,0 +1,17 @@
+{
+  "task": "support",
+  "version": "v1",
+  "item_count": 40,
+  "splits": {
+    "development": {
+      "items": 25,
+      "sha256": "6846966811645ea9e8a0cbe053c5dbd34bae33446daece61ecbe7d9c58f96790",
+      "md5_base64": "M1Hh24f46uN4+0b0KDyy7A=="
+    },
+    "heldout": {
+      "items": 15,
+      "sha256": "98ad7391896197990ce929ef53121f97704a601caf598a8a79e658586d737f18",
+      "md5_base64": "FytyZILv9cPABoJqHnZOEg=="
+    }
+  }
+}
