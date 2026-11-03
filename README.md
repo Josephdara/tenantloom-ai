@@ -9,7 +9,7 @@ I use it to show how an organization can offer models to several teams in a few 
 | Area | State |
 |---|---|
 | Foundation: three projects, state bucket, CI identities, GitHub connection, plan and apply triggers, platform budget | Implemented and partly verified. Results and open items are in [foundation evidence](docs/evidence/foundation.md). |
-| Governance and access: model catalog allowlists, organization policies, identity matrix, PAM, audit sink, Model Armor, perimeter in dry run | Planned |
+| Governance and access: model catalog allowlists, organization policies, identity matrix, PAM, audit sink, Model Armor, prod network, perimeter in dry run | Implemented; verification in progress. Results are in [governance evidence](docs/evidence/governance.md). |
 | Evaluation: versioned datasets, harness, evaluation records, catalog comparison | Planned |
 | Tenant module and delivery: starter template, Cloud Deploy pipeline, gates, attestation, canary, rollback | Planned |
 | Second team, operations, and documentation | Planned |
@@ -69,6 +69,7 @@ Planned later: `terraform/modules/tenant/`, `tenants/`, `verification/`, `templa
 | Platform administrator group | `ai-platform-admins@` your domain | Same, as `platform_admins_group` |
 | Auditor group | `auditors@` your domain | Same, as `auditors_group` |
 | Access policy | Your organization's existing access policy ID | Same, as `access_policy_id` |
+| Break-glass account | Your break-glass administrator | Same, as `breakglass_account` |
 | Budget alert address | Your own | Same, as `budget_alert_email` |
 | Monthly platform budget | 100 in the billing account's currency | `budget_amount` in `terraform/variables.tf` |
 | GitHub repository URI and code owner | Your own | `platform_repo_uri`, and `.github/CODEOWNERS` |

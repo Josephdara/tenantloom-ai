@@ -60,6 +60,11 @@ variable "auditors_group" {
   description = "Email of the group that reads audit and prompt logs."
 }
 
+variable "breakglass_account" {
+  type        = string
+  description = "Email of the break-glass administrator account, admitted to prod by the perimeter."
+}
+
 variable "access_policy_id" {
   type        = string
   description = "Numeric ID of the existing organization access policy."

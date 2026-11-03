@@ -50,11 +50,15 @@ locals {
 
   plan_folder_roles = toset([
     "roles/cloudbuild.connectionViewer",
+    "roles/cloudkms.viewer",
     "roles/cloudquotas.viewer",
+    "roles/compute.networkViewer",
+    "roles/dns.reader",
     "roles/iam.securityReviewer",
     "roles/modelarmor.floorSettingsViewer",
     "roles/privilegedaccessmanager.viewer",
     "roles/resourcemanager.folderViewer",
+    "roles/run.viewer",
   ])
 
   # Read access for planning, without job creation, log-entry reads, or secret access.
@@ -63,6 +67,7 @@ locals {
     "bigquery.datasets.getIamPolicy",
     "cloudbuild.builds.get",
     "cloudbuild.builds.list",
+    "compute.regionNetworkEndpointGroups.get",
     "iam.roles.get",
     "iam.roles.list",
     "iam.serviceAccounts.get",
@@ -71,6 +76,7 @@ locals {
     "logging.buckets.get",
     "logging.exclusions.get",
     "logging.logMetrics.get",
+    "logging.settings.get",
     "logging.sinks.get",
     "logging.views.get",
     "logging.views.getIamPolicy",

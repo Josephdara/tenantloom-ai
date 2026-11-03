@@ -14,6 +14,12 @@ This records what was checked on the TenantLoom AI governance controls, what was
 | A membership change to `ai-governance` or `auditors` raises an alert | 2 | Pending |
 | Representative audit events reach the audit dataset | 7 | Pending |
 | Model Armor floor settings inspect in sandbox and block in nonprod and prod | | Pending |
+| Prod log buckets use the CMEK key | | Pending |
+| An unauthenticated call to the prod probe through the load balancer returns 403 | | Pending |
+| Calls through the load balancer reach the probe | 4 | Pending, early signal from the dry run |
+| Internet egress from prod fails; a model call through the restricted range succeeds | 5, 14 | Pending, early signal from the egress job |
+| A `platform-prod-admin` grant gives access only while active | 16 | Pending |
+| The dry-run perimeter logs violations for prohibited paths only | | Pending |
 
 ## Details
 
@@ -46,3 +52,5 @@ This records what was checked on the TenantLoom AI governance controls, what was
 | Organization custom role `terraformLogConfigReader` | `sa-terraform` cannot create organization roles |
 | Organization log sink `identity-audit`, and Log Bucket Writer for its writer identity in nonprod | `sa-terraform` holds no organization logging role, so it cannot route organization-level logs |
 | Sharing Cloud Identity data with Google Cloud | An Admin console setting |
+| Organization-level Privileged Access Manager service agent | Created at the organization, where `sa-terraform` has no Service Usage role |
+| Delegating the prod hostname to Cloud DNS | A registrar setting |

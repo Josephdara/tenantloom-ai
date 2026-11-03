@@ -1,6 +1,6 @@
 # ADR-007: Prod network path under VPC Service Controls
 
-**Status:** Accepted. Describes planned behavior; nothing here is implemented or verified.
+**Status:** Accepted. The prod network, load balancer, temporary probe, and dry-run perimeter are implemented; lab checks 4, 5, 13, 14, and 16 are not yet verified.
 
 ## Context
 
@@ -28,7 +28,7 @@ Prod services still need callers from outside the perimeter: team clients, and t
    - Gemini is reached through the `us-east4` regional endpoint on that range.
 3. **The network reaches only the perimeter's services.** The perimeter's VPC accessible services are set to its restricted services. Every Google API a prod workload calls must therefore be on the restricted list.
 4. **Management and PAM ingress.** Ingress rules admit:
-   - `sa-terraform` for all restricted services, `sa-terraform-plan` for read methods where a service supports method limits, and the break-glass account for recovery (ADR-004).
+   - `sa-terraform` for all restricted services, `sa-terraform-plan` for all methods, since IAM keeps it read-only, and the break-glass account for recovery (ADR-004).
    - Each team's `<id>-developers` group for read methods on Cloud Run and Cloud Logging, the path for `<id>-prod-read` grants.
    - The platform admins group for the restricted services, the path for `platform-prod-admin` grants.
 
@@ -39,6 +39,13 @@ Prod services still need callers from outside the perimeter: team clients, and t
    - A write to a bucket in another project
    - An unauthenticated call
 6. **Nonprod is outside the perimeter.** Dev and test services keep IAM-gated ingress without a load balancer, because they hold only synthetic data and are not perimeter members.
+7. **A temporary probe exercises the path before any team workload exists.**
+   - `platform-probe`, a Cloud Run service in prod running Google's public hello image, sits behind the load balancer with the same ingress, egress, and custom audience settings a team service will use.
+   - `platform-egress-probe`, a Cloud Run job with the same egress, tries an internet request, a model call through the restricted range, and a write to a bucket in nonprod, and prints each result.
+   - Both run as `sa-platform-probe`, which holds only the Gemini Invoker role in prod.
+   - No identity holds a standing invoker grant on the probe. Authorized calls, job runs, and reading the job's logs use an active `platform-prod-admin` grant, which holds Cloud Run Developer, Cloud Run Invoker, Agent Platform User, and Logs View Accessor. It holds no role that can change IAM, following Google's guidance for entitlements.
+   - The probe uses public images, so it does not exercise image pulls from Artifact Registry in nonprod; that path is tested with the first team release. The probe is removed once a team service replaces it.
+8. **The perimeter's management rule admits all methods for both CI identities.** IAM already limits `sa-terraform-plan` to reads, and per-service read method lists would need maintenance for every restricted service.
 
 ## Prior evidence
 
@@ -58,6 +65,7 @@ Those results predate this design and are not yet captured as published evidence
 - **Workload API calls are constrained.** Adding a Google API to a prod workload means adding it to the perimeter's restricted list first.
 - **Eval and canary traffic go through the load balancer.** Canary requests aimed at the candidate revision need a route on it (ADR-005).
 - **Some regional endpoints need extra plumbing.** A Google API whose regional endpoint is not served by the restricted range needs a Private Service Connect endpoint in the VPC, with its own DNS record and a firewall rule allowing its internal address. The earlier spike used one.
+- **The dry run shows what enforcement would block.** Violations from the probe, the job, Terraform, and the folder sink appear in prod's audit logs before any rule is relied on.
 - **Management depends on ingress rules.** A missing or too narrow management rule blocks plans, applies, and drift checks against prod even when IAM allows them.
 
 ## Alternatives considered

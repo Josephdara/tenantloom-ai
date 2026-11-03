@@ -65,7 +65,7 @@ Five questions follow from that:
    |---|---|
    | Organization | `roles/orgpolicy.policyViewer`, `roles/accesscontextmanager.policyReader`, `roles/iam.organizationRoleViewer` |
    | Billing account | `roles/billing.viewer` |
-   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer`, and the organization custom role `terraformLogConfigReader` |
+   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer`, `roles/compute.networkViewer`, `roles/dns.reader`, `roles/cloudkms.viewer`, `roles/run.viewer`, and the organization custom role `terraformLogConfigReader` |
    | Each of the three projects | A custom plan reader role holding the get and list permissions Terraform needs, without `bigquery.jobs.create`, any job or workload creation, log-entry reads, or secret access |
    | `jd-aip-nonprod` | `roles/logging.logWriter`, so its builds can write their own logs |
    | State bucket | `roles/storage.objectViewer` |
@@ -102,7 +102,7 @@ Five questions follow from that:
 8. **Terraform manages no Cloud Identity groups.** An administrator creates every group, including `ai-governance`, `auditors`, `platform-admins`, and each team's `<id>-developers` and `<id>-release-approvers`, and manages their membership in the Admin console. Terraform only grants IAM to groups by address. Neither CI identity holds a Cloud Identity admin role.
 9. **CI identities reach prod through perimeter ingress rules.** Both identities run in Cloud Build outside the prod perimeter, and IAM roles do not get past VPC Service Controls. Ingress rules admit:
    - `sa-terraform` for all restricted services.
-   - `sa-terraform-plan` for read methods, where a service supports method limits.
+   - `sa-terraform-plan`, for all methods. IAM keeps it read-only, so method limits would add maintenance without narrowing access.
    - The break-glass account, for recovery.
 
 ## Accepted exceptions

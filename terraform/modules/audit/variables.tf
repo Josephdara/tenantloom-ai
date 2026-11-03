@@ -25,3 +25,8 @@ variable "auditors_group" {
   type        = string
   description = "Email of the group that reads audit and prompt logs."
 }
+
+variable "org_id" {
+  type        = string
+  description = "Numeric organization ID, used to name the organization sink's writer identity."
+}

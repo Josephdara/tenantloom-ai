@@ -216,6 +216,11 @@ Use your nonprod project ID in the check name. `10529` is the Google Cloud Build
 | Branch ruleset | GitHub API, step 10 |
 | Private CI inputs | Configuration object in the state bucket, below |
 | Cloud Billing export to BigQuery | Billing console, below. Not yet enabled in this deployment. |
+| Organization custom role `terraformLogConfigReader` (`logging.sinks.get`, `logging.sinks.list`) | gcloud, with a temporary Organization Role Administrator grant |
+| Organization log sink `identity-audit` to the nonprod `identity-audit` bucket, and Log Bucket Writer for its writer identity in nonprod | gcloud, with a temporary Logs Configuration Writer grant |
+| Sharing Cloud Identity data with Google Cloud | Admin console: Account settings, Legal and compliance, Sharing options |
+| Organization-level Privileged Access Manager service agent | `gcloud beta services identity create --service=privilegedaccessmanager.googleapis.com --organization=ORG_ID`, with a temporary Service Usage Admin grant |
+| Delegating the prod hostname to the Cloud DNS zone | Your registrar: NS records for the hostname, using the zone's name servers from the `prod_name_servers` output |
 
 ## Add a private CI input
 
