@@ -1,6 +1,6 @@
 # ADR-004: State and CI ownership
 
-**Status:** Accepted. The decisions below are implemented for the platform root. Verified results and open items are in [foundation evidence](../evidence/foundation.md); the stale-plan check and the membership alert are not yet verified.
+**Status:** Accepted. The decisions below are implemented for the platform root. Verified results and open items are in [foundation evidence](../evidence/foundation.md); the membership alert is not yet verified.
 
 ## Context
 
@@ -65,10 +65,12 @@ Five questions follow from that:
    |---|---|
    | Organization | `roles/orgpolicy.policyViewer`, `roles/accesscontextmanager.policyReader`, `roles/iam.organizationRoleViewer` |
    | Billing account | `roles/billing.viewer` |
-   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer` |
+   | `ai-platform` folder | `roles/iam.securityReviewer`, `roles/resourcemanager.folderViewer`, `roles/modelarmor.floorSettingsViewer`, `roles/privilegedaccessmanager.viewer`, `roles/cloudquotas.viewer`, `roles/cloudbuild.connectionViewer`, and the organization custom role `terraformLogConfigReader` |
    | Each of the three projects | A custom plan reader role holding the get and list permissions Terraform needs, without `bigquery.jobs.create`, any job or workload creation, log-entry reads, or secret access |
    | `jd-aip-nonprod` | `roles/logging.logWriter`, so its builds can write their own logs |
    | State bucket | `roles/storage.objectViewer` |
+
+   No predefined role reads log sinks without also reading log entries, so `terraformLogConfigReader` holds only `logging.sinks.get` and `logging.sinks.list`. It is an organization role, which `sa-terraform` cannot create, so break-glass created it outside Terraform; Terraform grants it on the folder.
 
    Basic Viewer is not used, because it lets a principal start BigQuery jobs. The custom role grows with each new resource type, and each pull request plan shows whether it is complete.
 
