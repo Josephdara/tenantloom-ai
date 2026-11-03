@@ -1,0 +1,22 @@
+{
+  "gemini-3.8-flash": {
+    "pattern": "publisher",
+    "location": "us",
+    "params": {"temperature": 0, "maxOutputTokens": 2048, "responseMimeType": "application/json"}
+  },
+  "gemini-4-argon": {
+    "pattern": "publisher",
+    "location": "us",
+    "params": {"temperature": 0, "maxOutputTokens": 4096, "responseMimeType": "application/json", "thinkingConfig": {"thinkingLevel": "LOW"}}
+  },
+  "gemma-4-26b-a4b-it-maas": {
+    "pattern": "maas",
+    "location": "global",
+    "params": {"temperature": 0, "maxOutputTokens": 2048}
+  },
+  "gemma3n": {
+    "pattern": "self-deployed",
+    "location": "us-east4",
+    "params": {"temperature": 0, "max_tokens": 1024}
+  }
+}

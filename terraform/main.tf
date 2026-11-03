@@ -77,6 +77,18 @@ module "governance" {
   governance_group      = var.governance_group
 }
 
+module "evaluation" {
+  source = "./modules/evaluation"
+
+  project_id            = module.projects.project_ids["sandbox"]
+  nonprod_project_id    = module.projects.project_ids["nonprod"]
+  region                = var.region
+  labels                = local.labels
+  gemini_invoker_role   = module.governance.gemini_invoker_roles["sandbox"]
+  platform_admins_group = var.platform_admins_group
+  governance_group      = var.governance_group
+}
+
 module "audit" {
   source = "./modules/audit"
 

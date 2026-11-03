@@ -1,9 +1,16 @@
 locals {
   catalog = yamldecode(file("${path.module}/../../../catalog/catalog.yaml"))
 
+  # Managed models are called through the API; self-deployed models are allowed only to be deployed.
+  pattern_actions = {
+    publisher       = "predict"
+    maas            = "predict"
+    "self-deployed" = "deploy"
+  }
+
   allowed_models = {
     for env in keys(var.project_ids) : env => sort([
-      for m in local.catalog.models : "publishers/${m.publisher}/models/${m.id}:predict"
+      for m in local.catalog.models : "publishers/${m.publisher}/models/${m.id}:${local.pattern_actions[m.deployment_pattern]}"
       if contains(m.environments, env)
     ])
   }

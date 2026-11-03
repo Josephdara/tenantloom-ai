@@ -1,0 +1,6 @@
+google-auth==2.62.0
+google-cloud-aiplatform==2.5.0
+google-cloud-bigquery==3.46.2
+google-cloud-storage==3.17.1
+jsonschema==4.26.0
+requests==2.34.2

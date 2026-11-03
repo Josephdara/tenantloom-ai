@@ -114,3 +114,62 @@ resource "google_cloudbuild_trigger" "apply" {
     approval_required = true
   }
 }
+
+# Platform container images, such as the evaluation harness.
+resource "google_artifact_registry_repository" "platform" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = "platform"
+  format        = "DOCKER"
+  description   = "Platform-owned container images"
+
+  docker_config {
+    immutable_tags = true
+  }
+}
+
+# Builds platform images; holds no project-level storage or build roles.
+resource "google_service_account" "eval_build" {
+  project      = var.project_id
+  account_id   = "sa-eval-build"
+  display_name = "Platform image build"
+}
+
+# Lets image builds write their own logs.
+resource "google_project_iam_member" "eval_build_log_writer" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = google_service_account.eval_build.member
+}
+
+# Lets image builds push to the platform repository only.
+resource "google_artifact_registry_repository_iam_member" "eval_build_writer" {
+  project    = var.project_id
+  location   = var.region
+  repository = google_artifact_registry_repository.platform.repository_id
+  role       = "roles/artifactregistry.writer"
+  member     = google_service_account.eval_build.member
+}
+
+# Builds the evaluation harness image for each merge that changes eval/.
+resource "google_cloudbuild_trigger" "eval_image" {
+  for_each = local.github_repositories
+
+  project         = var.project_id
+  location        = var.region
+  name            = "platform-eval-image"
+  service_account = google_service_account.eval_build.id
+  filename        = "cloudbuild/eval-image.yaml"
+  included_files  = ["eval/**", "cloudbuild/eval-image.yaml"]
+  substitutions = {
+    _IMAGE = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.platform.repository_id}/eval-harness"
+  }
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.platform[each.key].id
+
+    push {
+      branch = "^main$"
+    }
+  }
+}

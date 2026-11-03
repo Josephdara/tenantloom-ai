@@ -66,10 +66,13 @@ locals {
 
   # Read access for planning, without job creation, log-entry reads, or secret access.
   plan_reader_permissions = [
+    "artifactregistry.repositories.get",
     "bigquery.datasets.get",
     "bigquery.datasets.getIamPolicy",
+    "bigquery.tables.get",
     "cloudbuild.builds.get",
     "cloudbuild.builds.list",
+    "cloudscheduler.jobs.get",
     "compute.regionNetworkEndpointGroups.get",
     "iam.roles.get",
     "iam.roles.list",

@@ -1,0 +1,43 @@
+[
+  {"name": "run_id", "type": "STRING", "mode": "REQUIRED", "description": "Unique ID of the evaluation run"},
+  {"name": "run_time", "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Time the run started"},
+  {"name": "task", "type": "STRING", "mode": "REQUIRED", "description": "Evaluation task, such as docs or support"},
+  {"name": "split", "type": "STRING", "mode": "REQUIRED", "description": "Dataset split: development or heldout"},
+  {"name": "dataset_version", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "dataset_sha256", "type": "STRING", "mode": "REQUIRED", "description": "SHA-256 of the dataset file as read"},
+  {"name": "dataset_item_count", "type": "INTEGER", "mode": "REQUIRED", "description": "Items in the dataset file"},
+  {"name": "item_count", "type": "INTEGER", "mode": "REQUIRED", "description": "Items evaluated in this run"},
+  {"name": "item_limit", "type": "INTEGER", "mode": "NULLABLE", "description": "Item limit for a partial run, which cannot pass"},
+  {"name": "item_errors", "type": "INTEGER", "mode": "REQUIRED", "description": "Items whose model call or scoring failed"},
+  {"name": "model_id", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "model_location", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "deployment_pattern", "type": "STRING", "mode": "REQUIRED", "description": "publisher, maas, or self-deployed"},
+  {"name": "endpoint", "type": "STRING", "mode": "NULLABLE", "description": "Endpoint URL for self-deployed models"},
+  {"name": "prompt_version", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "prompt_sha256", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "generation_params", "type": "STRING", "mode": "REQUIRED", "description": "Generation parameters as JSON"},
+  {"name": "image_digest", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "harness_version", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "harness_commit", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "evaluation_location", "type": "STRING", "mode": "REQUIRED", "description": "Location of the evaluation service"},
+  {"name": "judge_model", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "judge_location", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "rubric_version", "type": "STRING", "mode": "NULLABLE"},
+  {"name": "rubric_sha256", "type": "STRING", "mode": "NULLABLE"},
+  {
+    "name": "metrics",
+    "type": "RECORD",
+    "mode": "REPEATED",
+    "fields": [
+      {"name": "name", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "definition", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "value", "type": "FLOAT", "mode": "REQUIRED"},
+      {"name": "threshold", "type": "FLOAT", "mode": "REQUIRED"},
+      {"name": "comparison", "type": "STRING", "mode": "REQUIRED", "description": "min or max"},
+      {"name": "passed", "type": "BOOLEAN", "mode": "REQUIRED"}
+    ]
+  },
+  {"name": "passed", "type": "BOOLEAN", "mode": "REQUIRED", "description": "True when every metric passed its threshold"},
+  {"name": "report_uri", "type": "STRING", "mode": "NULLABLE", "description": "Per-item report in Cloud Storage"},
+  {"name": "experiment_run", "type": "STRING", "mode": "NULLABLE"}
+]

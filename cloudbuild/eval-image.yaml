@@ -1,0 +1,19 @@
+steps:
+  - id: test
+    name: python:3.12-slim@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30
+    entrypoint: sh
+    args:
+      - -c
+      - pip install --quiet --no-cache-dir -r eval/requirements.txt -r eval/requirements-dev.txt && python -m pytest -q eval/tests
+
+  - id: build
+    name: gcr.io/cloud-builders/docker@sha256:fbc05705e6f24467e40ae8a4097ab9b8fae1116551f838fa2c55f4367427fc36
+    args: ["build", "--build-arg", "HARNESS_COMMIT=${COMMIT_SHA}", "-t", "${_IMAGE}:${COMMIT_SHA}", "eval"]
+
+images:
+  - ${_IMAGE}:${COMMIT_SHA}
+
+timeout: 1200s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
