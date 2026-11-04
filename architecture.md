@@ -363,7 +363,7 @@ The harness and catalog evaluation are implemented; the per-team evaluation in d
 - **Where it runs.** The `catalog-eval` Cloud Run job runs in sandbox as `sa-catalog-eval`. Platform administrators start it with per-run arguments; the job validates any self-deployed endpoint URL so its credentials go only to Agent Platform prediction hosts in the evaluation project.
 - **Locations.** Gemini models are called on `us`. The Gemma MaaS model is served only on `global`. The evaluation service runs in `us-east4`, the only location that both serves it and passes the organization's location policy, and the support rubric's judge, `gemini-3.8-flash`, runs on `global` through a cross-region request field that the public API reference does not document (ADR-006).
 - **Records.** Each run writes one row to `catalog_eval.eval_runs`, one Experiments run in `us-east4`, and a per-item report next to the split it read. A failed item is recorded as failed and the run continues, and a run limited to part of a dataset can never pass.
-- **Self-deployed models.** One deployment at a time in sandbox, by `sa-model-deploy`, which platform administrators impersonate. An hourly job undeploys anything deployed longer than four hours.
+- **Self-deployed models.** One deployment at a time in sandbox, by `sa-model-deploy`, which platform administrators impersonate, through the Agent Platform `deploy` method, because the gcloud deploy command first checks quota through an API sandbox does not enable. An hourly job undeploys anything deployed longer than four hours. Undeploying leaves an empty endpoint, which is not billed.
 
 ### Monitoring and objectives
 
