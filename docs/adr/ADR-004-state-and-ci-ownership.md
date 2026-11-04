@@ -110,7 +110,7 @@ Five questions follow from that:
 
 These differ from the decisions above and are kept deliberately. The monthly access review checks both.
 
-- **Legacy Cloud Build service account.** Google granted `PROJECT_NUMBER@cloudbuild.gserviceaccount.com` `roles/cloudbuild.builds.builder` in `jd-aip-nonprod` when the Cloud Build API was enabled. That role can read and write the state bucket. Every trigger names its own service account, so no build runs as this account; a build that did would show it in the audit logs.
+- **Legacy Cloud Build service account.** Google granted `PROJECT_NUMBER@cloudbuild.gserviceaccount.com` `roles/cloudbuild.builds.builder` in `jd-aip-nonprod` when the Cloud Build API was enabled. That role can read and write every bucket in nonprod, including the state bucket and the held-out evaluation data. Every trigger names its own service account, so no build runs as this account; a build that did would show it in the audit logs.
 - **Inherited folder administrator.** One named administrator account holds Folder Admin and Folder Editor on `ai-platform`, which every project inherits, including prod. It can grant itself any role there, so prod has standing human access through this account. Audit logs and the access review are the controls.
 
 ## Consequences

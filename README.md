@@ -10,7 +10,7 @@ I use it to show how an organization can offer models to several teams in a few 
 |---|---|
 | Foundation: three projects, state bucket, CI identities, GitHub connection, plan and apply triggers, platform budget | Implemented and partly verified. Results and open items are in [foundation evidence](docs/evidence/foundation.md). |
 | Governance and access: model catalog allowlists, organization policies, identity matrix, PAM, audit sink, Model Armor, prod network, perimeter in dry run | Implemented and verified, with the perimeter in dry run. Results and open items are in [governance evidence](docs/evidence/governance.md). |
-| Evaluation: versioned datasets, harness, evaluation records, catalog comparison | Planned |
+| Evaluation: versioned datasets, harness, evaluation records, catalog comparison | Implemented and partly verified: development runs complete, held-out runs partly blocked by the provider, self-deployed model not yet measured. Results are in the [catalog evaluation report](catalog/reports/catalog-eval-v1.md) and [evaluation evidence](docs/evidence/evaluation.md). |
 | Tenant module and delivery: starter template, Cloud Deploy pipeline, gates, attestation, canary, rollback | Planned |
 | Second team, operations, and documentation | Planned |
 

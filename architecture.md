@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Owner | Joseph Olutimehin |
-| Status | The platform foundation in section 5 is implemented and partly verified; see [foundation evidence](docs/evidence/foundation.md). Everything else is planned. |
+| Status | The platform foundation (section 5), governance and access (sections 7 to 9), and catalog evaluation (section 11) are implemented and partly verified; see [foundation](docs/evidence/foundation.md), [governance](docs/evidence/governance.md), and [evaluation](docs/evidence/evaluation.md) evidence. Tenant provisioning and delivery are planned. |
 | Build plan | TenantLoom AI |
 | Organization | `josephdara.com` (Cloud Identity Free) |
 | Footprint | Three projects in `us-east4` |
@@ -230,8 +230,12 @@ Each data type has a defined location, reader set, retention period, and key:
 | Application logs | Log bucket per project, team log views | Team developers (own view), platform admins | 30 days nonprod, 90 days prod | CMEK in prod |
 | Audit logs | BigQuery audit dataset in nonprod | Auditors | 1 year | Google-managed |
 | Model Armor logs | Restricted log bucket in nonprod and prod | Auditors | 30 days | CMEK in prod |
+| Catalog evaluation datasets | Development split in a sandbox bucket; held-out split in a nonprod bucket | Platform admins (development split; upload only for held-out), catalog evaluation account (both) | Versioned | Google-managed |
+| Catalog evaluation results | `catalog_eval.eval_runs` in sandbox; each run's report next to the split it read | Platform admins and `ai-governance` (table and development reports), catalog evaluation account (held-out reports) | 1 year for the table | Google-managed |
 
 Bucket lifecycle rules, table expiration, and log bucket retention enforce these periods. Prod CMEK keys sit in one key ring in `jd-aip-prod`. The Logging key is in place and only the prod Logging service account can use it; Storage and BigQuery keys are added, with the same restriction, when prod first holds a bucket or dataset. Keys stay active after a team offboards until its retained data expires.
+
+Held-out data lives only in projects where no identity can start Agent Platform workloads. Each project's Agent Platform service agents hold project-wide object read, and custom jobs, batch prediction, and self-deployed models run as those agents, so anyone able to start such a workload could read every bucket in the project. Sandbox lets platform administrators deploy models, so held-out data is in nonprod, and no identity in nonprod, including team identities, may be granted job, model, or endpoint creation there.
 
 Each team's eval account can write only its own `eval_runs` table. Row-level policies are not used for isolation, because they filter reads and do not restrict writes. Platform state owns the governance union view and generates it from the active teams in `tenants/`; each tenant state owns only its own table and grants.
 
@@ -283,8 +287,9 @@ A monthly query over a Cloud Asset Inventory export flags user-level bindings, O
 
 - **Authentication.** Invoker IAM is enforced by organization policy on every Cloud Run service, and unauthenticated calls are part of the security gate. Prod callers reach services only through the load balancer.
 - **Perimeter.** VPC Service Controls around `jd-aip-prod`, with restricted ingress, all egress through the VPC, and the restricted services and rules listed under [Data flows](#4-data-flows-and-the-prod-perimeter) (ADR-007).
-- **Model Armor.** Floor settings per project cover prompt injection, jailbreaks, sensitive data, and malicious URLs, with sandbox inspecting only and nonprod and prod inspecting and blocking. In testing, Agent Platform did not apply them to calls on the `us` endpoint: no screening or log entry was recorded. Screening therefore happens in the application: services call the Model Armor sanitize API with each project's `baseline` template, in the `us` location, before sending a prompt and before returning a response. The starter template provides this call. The floor settings stay in place and take effect wherever Agent Platform applies them.
+- **Model Armor.** Floor settings per project cover prompt injection, jailbreaks, sensitive data, and malicious URLs, with sandbox inspecting only and nonprod and prod inspecting and blocking. In testing, Agent Platform applied them to calls on the `global` endpoint but not to calls on the `us` endpoint, where no screening or log entry was recorded. Screening therefore happens in the application: services call the Model Armor sanitize API with each project's `baseline` template, in the `us` location, before sending a prompt and before returning a response. The starter template provides this call. The floor settings stay in place and take effect wherever Agent Platform applies them.
 - **Supply chain.** Artifact Analysis scans images, and deployments use digests. Binary Authorization in prod admits only digests carrying the passed-test attestation, which `sa-attestor` signs with a KMS key after the test gates pass. The attestor, its note, and the signing key live in `jd-aip-nonprod` next to the test gates. `run.allowedBinaryAuthorizationPolicies` stops a deployer from turning enforcement off, and a custom organization policy constraint on `jd-aip-prod` rejects any service update that requests breakglass, so emergency breakglass requires the break-glass administrator to lift that constraint, a change that is itself logged and alerted. Release CI also rejects rendered manifests that carry the breakglass annotation, and every breakglass event raises an alert (ADR-005).
+- **Adversarial testing.** Prompt-injection and jailbreak tests go through the Model Armor sanitize API, and tests of model behavior use benign canary strings, such as an instruction to output a fixed marker, rather than raw attack text sent to Gemini. Evaluation and test runs are started one at a time, not in bursts. Agent Platform rejected all Gemini generation in sandbox on policy grounds after a burst of evaluation runs, with no stated reason.
 - **Threat model.** Covers cross-team access, unapproved models, unauthenticated calls, prompt injection, data exfiltration from prod, unreviewed prod changes, and cost abuse, each mapped to the controls above.
 
 ## 10. Delivery workflow
@@ -348,7 +353,17 @@ Every eval run writes a record a reviewer can trace a release decision back to:
 - **`support`:** 40 tickets with reference summaries, 25 for development and 15 held out, scored by a judge model on a 5-point rubric.
 - **Held-out protection:** held-out paths are readable only by the team's eval account, so prompt work only ever sees the development set.
 - **Harness:** a container using the Gen AI evaluation service, logging to Agent Platform Experiments and the team's `eval_runs` table.
-- **Catalog evaluation:** Gemini Flash and Gemini Pro (pinned versions) against Gemma from Model Garden, deployed in sandbox only for the eval window or used through Model as a Service (MaaS). Publisher, MaaS, and self-deployed patterns are compared in an ADR.
+- **Catalog evaluation:** `gemini-3.8-flash` and `gemini-4-argon` against Gemma from Model Garden, through Model as a Service (MaaS) and as a self-deployed model in sandbox. Publisher, MaaS, and self-deployed patterns are compared in [ADR-006](docs/adr/ADR-006-deployment-patterns.md), and results are in the [catalog evaluation report](catalog/reports/catalog-eval-v1.md).
+
+### Evaluation implementation
+
+The harness and catalog evaluation are implemented; the per-team evaluation in delivery is planned with the tenant module.
+
+- **Harness.** `eval/` holds the harness, the evaluation record schema, versioned prompts and rubric, task thresholds, and dataset manifests that record each split's item count and SHA-256 without any content. A Cloud Build trigger builds the image on each merge that changes `eval/`, into a platform repository with immutable tags, and the evaluation job is pinned to the image digest.
+- **Where it runs.** The `catalog-eval` Cloud Run job runs in sandbox as `sa-catalog-eval`. Platform administrators start it with per-run arguments; the job validates any self-deployed endpoint URL so its credentials go only to Agent Platform prediction hosts in the evaluation project.
+- **Locations.** Gemini models are called on `us`. The Gemma MaaS model is served only on `global`. The evaluation service runs in `us-east4`, the only location that both serves it and passes the organization's location policy, and the support rubric's judge, `gemini-3.8-flash`, runs on `global` through a cross-region request field that the public API reference does not document (ADR-006).
+- **Records.** Each run writes one row to `catalog_eval.eval_runs`, one Experiments run in `us-east4`, and a per-item report next to the split it read. A failed item is recorded as failed and the run continues, and a run limited to part of a dataset can never pass.
+- **Self-deployed models.** One deployment at a time in sandbox, by `sa-model-deploy`, which platform administrators impersonate. An hourly job undeploys anything deployed longer than four hours.
 
 ### Monitoring and objectives
 
@@ -391,17 +406,17 @@ tenantloom-ai/
 ├── terraform/                 platform root: bootstrap set, org policies, projects, perimeter, platform IAM
 │   └── modules/tenant/        team slice
 ├── tenants/                   docs.yaml, support.yaml
-├── catalog/                   catalog.yaml, eval reports
+├── catalog/                   catalog.yaml, catalog evaluation reports
 ├── verification/              platform-owned gate jobs and minimum thresholds
 ├── templates/starter-service/
-├── eval/                      harness and evaluation record schema
+├── eval/                      harness, evaluation record schema, prompts, rubric, dataset manifests
 ├── cloudbuild/                platform plan and apply, tenant build template
 └── docs/                      guides, runbooks, ADRs, diagrams, evidence
 ```
 
 ## 14. Planned architecture decision records
 
-ADRs live in `docs/adr/`. ADR-006 is planned; the others are written.
+ADRs live in `docs/adr/`.
 
 | ADR | Decision |
 |---|---|
@@ -410,7 +425,7 @@ ADRs live in `docs/adr/`. ADR-006 is planned; the others are written.
 | [ADR-003](docs/adr/ADR-003-team-isolation.md) | Team isolation in shared projects, including team IDs |
 | [ADR-004](docs/adr/ADR-004-state-and-ci-ownership.md) | State and CI ownership: `sa-terraform` scope, read-only pull request plans, approval before every plan and apply, protected state bucket, no Terraform-managed groups |
 | [ADR-005](docs/adr/ADR-005-attested-promotion.md) | Attested promotion with Cloud Deploy: attestor and eval jobs in nonprod, enforced Binary Authorization, per-team eval tables, candidate-targeted canary |
-| ADR-006 | Deployment patterns: publisher, MaaS, and self-deployed |
+| [ADR-006](docs/adr/ADR-006-deployment-patterns.md) | Deployment patterns: publisher models on `us` by default, MaaS and self-deployed models in sandbox, and the evaluation judge on `global` |
 | [ADR-007](docs/adr/ADR-007-prod-network-path.md) | Prod network path under VPC Service Controls: load balancer ingress, VPC egress, restricted Google APIs |
 
 ## 15. Lab checks
