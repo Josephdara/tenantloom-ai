@@ -1,6 +1,6 @@
 # ADR-006: Model deployment patterns
 
-**Status:** Accepted. The publisher and MaaS patterns are implemented and evaluated in sandbox. The self-deployed pattern is configured, including its allowlist entry, deployment identity, and expiry job, but no model has been deployed or measured yet. Results are in [evaluation evidence](../evidence/evaluation.md) and the [catalog evaluation report](../../catalog/reports/catalog-eval-v1.md).
+**Status:** Accepted. All three patterns are implemented and evaluated in sandbox. The self-deployed pattern was measured on the docs task only, because the support task's judge is blocked in sandbox. Results are in [evaluation evidence](../evidence/evaluation.md) and the [catalog evaluation report](../../catalog/reports/catalog-eval-v1.md).
 
 ## Context
 
@@ -34,13 +34,14 @@ The platform's constraints shape which of these is usable and where:
 |---|---|---|---|
 | Publisher | `us` | Per token | `gemini-3.8-flash` at its default thinking level: p95 latency 8.8 s (docs) and 8.3 s (support). `gemini-4-argon` at thinking level `LOW`: 12.6 s and 13.7 s. |
 | MaaS | `global` only | Per token | `gemma-4-26b-a4b-it-maas`: p95 latency 3.5 s and 3.4 s |
-| Self-deployed | `us-east4` | Per machine hour while deployed | Not yet measured |
+| Self-deployed | `us-east4` | Per machine hour while deployed | `gemma3n` on one L4, docs task only: field accuracy 0.976, schema validity 0.920 (fails), p95 latency 3.8 s |
 
-- **Quality did not separate the models.** Every model scored full exact-match accuracy on the docs set and the maximum rubric score on the support set. The v1 datasets are too easy to rank the patterns by quality; latency, location, and cost separate them.
+- **Quality separated only the small self-deployed model.** The publisher and MaaS models scored full exact-match accuracy on the docs set and the maximum rubric score on the support set. `gemma3n` failed the schema gate, mostly by writing a currency symbol where the schema requires an ISO code. The v1 datasets are too easy to rank the larger models by quality; latency, location, and cost separate them.
 - **Thinking dominates publisher latency.** In a separate sample, `gemini-3.8-flash` at thinking level `LOW` had a median latency of 1.4 s against 7.9 s at its default, with no loss of accuracy. Teams set the thinking level in their own release configuration.
-- **MaaS trades location for speed.** It was the fastest pattern and the only one inside the four-second latency gate, but it runs outside the US multi-region.
+- **MaaS trades location for speed.** It was the fastest pattern and passed every gate, but it runs outside the US multi-region.
 - **MaaS models can be experimental.** The Gemma MaaS model's launch stage is experimental, so it can change without the notice period of a generally available model.
-- **Self-deployment carries operational weight.** It needs GPU quota, a deployment identity with broad sandbox permissions, endpoint expiry, and per-hour cost, which the managed patterns avoid.
+- **Self-deployment keeps an open model in a US region at MaaS-like latency.** `gemma3n` met the four-second gate in `us-east4`, but a model small enough for one L4 missed the quality gates the larger models passed.
+- **Self-deployment carries operational weight.** It needs GPU quota, a deployment identity with broad sandbox permissions, endpoint expiry, and per-hour cost, which the managed patterns avoid. Quota does not guarantee capacity: the first deployment failed after about 25 minutes because no L4 machine was available in `us-east4`, and a retry succeeded. The `gcloud ai model-garden models deploy` command checks quota on the client first, which needs the Cloud Quotas API and quota and monitoring read for the deploying identity, so deployments call the Agent Platform deploy method directly instead.
 - **A provider can withdraw a model from a project.** Gemini generation in sandbox began returning a policy rejection partway through the evaluation and stayed blocked, while Gemma MaaS and the other projects kept working. Keeping evaluation in its own project limited the effect to that project.
 
 ## Alternatives considered
@@ -51,5 +52,5 @@ The platform's constraints shape which of these is usable and where:
 
 ## Verification
 
-- **Verified:** model locations, the evaluation service location, the cross-region judge, the generated allowlist entries, the expiry job's scheduled run, and the development results above.
-- **Pending:** the self-deployed measurement, the held-out runs blocked by the provider, and a harder dataset that can rank the patterns by quality.
+- **Verified:** model locations, the evaluation service location, the cross-region judge, the generated allowlist entries including the `deploy` entry for `gemma3n`, a self-deployed deployment and undeployment, the expiry job's scheduled run, and the results above.
+- **Pending:** the expiry job undeploying a real deployment, the self-deployed support task and the held-out runs blocked by the provider, and a harder dataset that can rank the patterns by quality.

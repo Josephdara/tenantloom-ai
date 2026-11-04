@@ -17,7 +17,7 @@ This records what was checked on the TenantLoom AI catalog evaluation, what was 
 | The endpoint expiry job runs on its schedule | Verified, with nothing to expire |
 | Full development runs for the managed models | Verified for all six |
 | Full held-out runs for the managed models | One of six completed; five blocked by the provider |
-| Self-deployed model measurement | Not yet run |
+| Self-deployed model measurement | Verified for the docs task; the support task is held |
 | Model Armor floor settings screen evaluation traffic | Verified on `global`; not on `us` |
 
 ## Details
@@ -89,6 +89,22 @@ This records what was checked on the TenantLoom AI catalog evaluation, what was 
 - **Significance:** the failed runs show the harness recording failures per item instead of producing a false result. The block stayed within sandbox, which is why evaluation runs in its own project.
 - **Limitations:** the cause is not known. Evaluation runs are now started one at a time.
 
+### Self-deployed model
+
+- **Checked:** a deployment of `gemma3n` (`gemma-3n-e4b-it`) from Model Garden to a shared endpoint in `us-east4` on one NVIDIA L4, started by a platform administrator impersonating `sa-model-deploy`; a test request; the docs task on both splits; and the undeployment.
+- **Observed:**
+  - `gcloud ai model-garden models deploy` stopped before sending any deploy request, because it checks quota on the client through the Cloud Quotas API, which is not enabled in sandbox. The deployment was instead made through the Agent Platform `deploy` method with the same request body.
+  - The organization's model allowlist accepted the request through the catalog's generated `deploy` entry, and `sa-model-deploy` held the permissions it needed.
+  - The first deployment failed after about 25 minutes with "Machine type temporarily unavailable" for the L4 machine type. A retry deployed in about 14 minutes.
+  - The endpoint answered an OpenAI-compatible chat completion request, and the evaluation job, running as `sa-catalog-eval`, called it with no item errors.
+  - Results are in the [catalog evaluation report](../../catalog/reports/catalog-eval-v1.md): the model met the latency gate and failed schema validity on both splits.
+  - After the runs, the deployed model was undeployed and the endpoint then listed no deployed models. The empty endpoint and the uploaded model remain, and neither is billed.
+- **Significance:** the self-deployed pattern works end to end under the platform's controls, from the allowlist and deployment identity to the evaluation account's endpoint validation.
+- **Limitations:**
+  - The support task was not run, because its judge is blocked in sandbox.
+  - The held-out schema failures were not inspected, because the held-out report is readable only by the evaluation account.
+  - The model was undeployed by hand, so the expiry job has still not undeployed a real deployment.
+
 ### Model Armor floor settings
 
 - **Checked:** the Model Armor monitoring view in sandbox.
@@ -112,7 +128,8 @@ This records what was checked on the TenantLoom AI catalog evaluation, what was 
 | Item | Next step |
 |---|---|
 | Held-out runs blocked by the provider | Rerun the five runs one at a time once Gemini generation works in sandbox |
-| Self-deployed measurement | Deploy Gemma 3n on one L4, run it, and undeploy |
+| Self-deployed support task | Run `gemma3n` on the support task once its judge works in sandbox; this needs a new deployment |
+| Expiry of a real deployment | Observe the expiry job undeploying a deployment older than four hours |
 | Datasets too easy to rank models | A v2 dataset and rubric, with a check that the judge scores poor summaries low |
 | Latency recorded as 0.0 s when every item fails | Record no latency value in that case |
 | Held-out Gemma latency much higher than development | Recheck with the held-out reruns |
@@ -124,3 +141,4 @@ This records what was checked on the TenantLoom AI catalog evaluation, what was 
 | Dataset generation, review, and upload | Data, not infrastructure; held-out data must stay out of the repository |
 | Temporary Agent Platform User for the model test account during the location tests | A short test grant, added and removed by break-glass |
 | Temporary project-level Artifact Registry Reader for sandbox's Cloud Run agent during the jobs apply | Avoids an IAM propagation race; removed once the repository-level grant was in place |
+| Deploying and undeploying the self-deployed model, as `sa-model-deploy` | A short-lived, billed resource for one measurement; the expiry job is the backstop |
