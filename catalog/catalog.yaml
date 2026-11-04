@@ -5,9 +5,9 @@ models:
     deployment_pattern: publisher
     data_classifications: [public, internal, confidential]
     environments: [sandbox, nonprod, prod]
-    eval_report: null
+    eval_report: catalog/reports/catalog-eval-v1.md
     approver: ai-governance
-    retirement_date: null
+    retirement_date: "2027-09-02"
 
   - id: gemini-4-argon
     publisher: google
@@ -15,9 +15,9 @@ models:
     deployment_pattern: publisher
     data_classifications: [public, internal]
     environments: [sandbox]
-    eval_report: null
+    eval_report: catalog/reports/catalog-eval-v1.md
     approver: null
-    retirement_date: null
+    retirement_date: "2027-10-13"
 
   - id: gemma-4-26b-a4b-it-maas
     publisher: google
@@ -25,7 +25,7 @@ models:
     deployment_pattern: maas
     data_classifications: [public, internal]
     environments: [sandbox]
-    eval_report: null
+    eval_report: catalog/reports/catalog-eval-v1.md
     approver: null
     retirement_date: null
 
@@ -36,6 +36,6 @@ models:
     deployment_pattern: self-deployed
     data_classifications: [public, internal]
     environments: [sandbox]
-    eval_report: null
+    eval_report: catalog/reports/catalog-eval-v1.md
     approver: null
     retirement_date: null

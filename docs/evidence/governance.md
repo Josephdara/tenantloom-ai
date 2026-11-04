@@ -14,7 +14,7 @@ This records what was checked on the TenantLoom AI governance controls, what was
 | Unauthenticated Agent Platform calls are rejected | | Verified |
 | A membership change to `ai-governance` or `auditors` raises an alert | 2 | Verified: the alert opens an incident; email delivery not verified |
 | Representative audit events reach the audit dataset | 7 | Verified for Agent Platform in sandbox and nonprod |
-| Model Armor floor settings inspect in sandbox and block in nonprod and prod | | Failed: not applied to calls on the `us` endpoint |
+| Model Armor floor settings inspect in sandbox and block in nonprod and prod | | Partly verified: applied to Agent Platform calls on `global`, not to calls on the `us` endpoint |
 | The `baseline` template flags a prompt injection through the sanitize API | | Verified in sandbox and nonprod |
 | Model Armor logs reach the restricted bucket and stay out of `_Default` | | Verified |
 | Prod log buckets use the CMEK key | | Verified |
@@ -70,6 +70,7 @@ This records what was checked on the TenantLoom AI governance controls, what was
 - **Observed:** the floor settings are as configured: prompt injection and jailbreak at medium confidence and above, sensitive data, and malicious URL detection, with inspect only in sandbox, inspect and block in nonprod, and logging on. Both requests returned 200 with the model declining on its own; nonprod did not block. No Model Armor log entry exists in the restricted bucket or in either `_Default` bucket.
 - **Significance:** Agent Platform did not apply the floor settings to these calls, so they provide no screening on the `us` endpoint. The architecture now places screening in the application, through the sanitize API and each project's `baseline` template.
 - **Limitation:** the documentation reviewed lists only European and Asian regions for template-based screening and does not state US support for floor settings, so the cause is inferred from the observed absence of screening.
+- **Later observation:** during catalog evaluation, sandbox's floor setting screened 610 Agent Platform calls on the `global` endpoint, flagging 12, while none of the calls on `us` were screened ([evaluation evidence](evaluation.md#model-armor-floor-settings)). Floor settings therefore apply on `global` but not on `us`.
 
 ### Model Armor template screening
 
@@ -121,7 +122,7 @@ This records what was checked on the TenantLoom AI governance controls, what was
 | Load balancer traffic under enforcement | Anonymous requests logged an `HttpIngress` dry-run violation | An ingress rule or access level for load balancer callers before the perimeter is enforced (ADR-007) |
 | Early revocation of prod grants | `ai-governance` can approve but not revoke a grant, and no person holds the revoke permission | Grant a revoke-capable role to `ai-governance` on `jd-aip-prod` |
 | Governance alert delivery | The notification channel's address has no mailbox | Point the channel at an address that receives mail |
-| Model Armor floor settings | Not applied on the `us` endpoint | Kept in place; screening happens through the sanitize API |
+| Model Armor floor settings | Applied on `global`, not on the `us` endpoint | Kept in place; screening on `us` happens through the sanitize API |
 
 ### CI role lists for governance resources (lab check 9)
 
