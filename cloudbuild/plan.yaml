@@ -4,23 +4,19 @@ steps:
     entrypoint: gcloud
     args: ["storage", "cp", "gs://${_STATE_BUCKET}/config/platform.auto.tfvars.json", "terraform/"]
 
-  - id: init
-    name: hashicorp/terraform:1.16.4
-    args:
-      - -chdir=terraform
-      - init
-      - -input=false
-      - -backend-config=bucket=${_STATE_BUCKET}
-      - -backend-config=prefix=platform
-
   - id: plan
     name: hashicorp/terraform:1.16.4
-    args: ["-chdir=terraform", "plan", "-input=false", "-out=tfplan"]
+    entrypoint: sh
+    args: ["cloudbuild/scripts/tf-states.sh", "plan"]
+    env:
+      - STATE_BUCKET=${_STATE_BUCKET}
 
   - id: save
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
-    entrypoint: gcloud
-    args: ["storage", "cp", "terraform/tfplan", "gs://${_STATE_BUCKET}/plans/${COMMIT_SHA}.tfplan"]
+    entrypoint: bash
+    args:
+      - -c
+      - gcloud storage cp plans/*.tfplan "gs://${_STATE_BUCKET}/plans/${COMMIT_SHA}/"
 
   - id: start-apply
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:587.0.0-slim
