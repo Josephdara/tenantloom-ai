@@ -13,6 +13,10 @@ output "buckets" {
   }
 }
 
+output "eval_runner_permissions" {
+  value = local.eval_runner_permissions
+}
+
 output "eval_runs_table" {
   value = "${google_bigquery_table.eval_runs.project}.${google_bigquery_dataset.catalog_eval.dataset_id}.${google_bigquery_table.eval_runs.table_id}"
 }

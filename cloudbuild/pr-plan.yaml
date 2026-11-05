@@ -8,22 +8,12 @@ steps:
     name: hashicorp/terraform:1.16.4
     args: ["-chdir=terraform", "fmt", "-check", "-recursive"]
 
-  - id: init
-    name: hashicorp/terraform:1.16.4
-    args:
-      - -chdir=terraform
-      - init
-      - -input=false
-      - -backend-config=bucket=${_STATE_BUCKET}
-      - -backend-config=prefix=platform
-
-  - id: validate
-    name: hashicorp/terraform:1.16.4
-    args: ["-chdir=terraform", "validate"]
-
   - id: plan
     name: hashicorp/terraform:1.16.4
-    args: ["-chdir=terraform", "plan", "-input=false", "-lock=false"]
+    entrypoint: sh
+    args: ["cloudbuild/scripts/tf-states.sh", "pr-plan"]
+    env:
+      - STATE_BUCKET=${_STATE_BUCKET}
 
 timeout: 1200s
 

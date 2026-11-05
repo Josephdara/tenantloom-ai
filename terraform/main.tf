@@ -95,6 +95,15 @@ module "evaluation" {
   governance_group      = var.governance_group
 }
 
+module "tenancy" {
+  source = "./modules/tenancy"
+
+  project_id              = module.projects.project_ids["nonprod"]
+  region                  = var.region
+  labels                  = local.labels
+  eval_runner_permissions = module.evaluation.eval_runner_permissions
+}
+
 module "audit" {
   source = "./modules/audit"
 
